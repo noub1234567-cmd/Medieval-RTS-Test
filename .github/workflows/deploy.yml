@@ -2,8 +2,8 @@ name: Build and Deploy Test Game
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "*/15 * * * *"
+  repository_dispatch:
+    types: [game-source-updated]
   push:
     branches: [main]
 
