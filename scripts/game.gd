@@ -29,6 +29,12 @@ var market_buy_option:OptionButton
 var market_amount_spin:SpinBox
 var market_preview_label:Label
 var market_window_open:=false
+var motivation_panel:PanelContainer
+var motivation_status_label:Label
+var motivation_activate_button:Button
+var motivation_time_remaining:=0.0
+const MOTIVATION_DURATION_L1:=180.0
+const MOTIVATION_DURATION_L2:=240.0
 const MARKET_PRICES:Dictionary={"food":1.0,"wood":1.0,"stone":1.5,"gold":2.0}
 const MARKET_MIN_AMOUNT:=10
 
@@ -72,7 +78,7 @@ var resource_nodes: Array[Node2D] = []
 var storage_points: Array[Node2D] = []
 var storage_capacity := 4000
 const ResourceNodeScript := preload("res://scripts/resource_node.gd")
-var building_cost := {"Farm": {"wood": 80, "gold": 30}, "House": {"wood": 100, "gold": 50}, "Barracks": {"wood": 150, "gold": 80}, "Guard Tower": {"wood": 120, "gold": 60}, "Watchtower": {"wood": 100, "gold": 50}, "Wall": {"wood": 25, "gold": 5}, "Warehouse": {"wood": 180, "gold": 70}, "Lumber Mill": {"wood": 150, "gold": 50}, "Quarry": {"wood": 150, "gold": 50}, "Gold Mine": {"wood": 150, "gold": 50}, "Mill": {"wood": 150, "gold": 50}, "Market": {"wood": 120, "gold": 60}}
+var building_cost := {"Farm": {"wood": 80, "gold": 30}, "House": {"wood": 100, "gold": 50}, "Barracks": {"wood": 150, "gold": 80}, "Guard Tower": {"wood": 120, "gold": 60}, "Watchtower": {"wood": 100, "gold": 50}, "Wall": {"wood": 25, "gold": 5}, "Warehouse": {"wood": 180, "gold": 70}, "Lumber Mill": {"wood": 150, "gold": 50}, "Quarry": {"wood": 150, "gold": 50}, "Gold Mine": {"wood": 150, "gold": 50}, "Mill": {"wood": 150, "gold": 50}, "Market": {"wood": 120, "gold": 60}, "Motivation Center": {"wood": 150, "gold": 50}}
 
 func _ready() -> void:
 	var overlay := OverlayScene.instantiate()
@@ -371,6 +377,13 @@ func touch_tap(pos:Vector2)->void:
 			selected_building=structure
 			open_market_window()
 			return
+		if structure.building_type=="Motivation Center":
+			clear_selection()
+			selected_building=structure
+			if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
+			if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
+			open_motivation_center_window()
+			return
 		clear_selection()
 		selected_building=structure
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
@@ -410,6 +423,7 @@ func finish_selection(end_pos:Vector2) -> void:
 	update_status()
 
 func clear_selection() -> void:
+	close_motivation_center_window()
 	for u in selected:
 		u.set_selected(false)
 	selected.clear()
@@ -560,13 +574,13 @@ func create_hud() -> void:
 	fourth_building_row.add_theme_constant_override("separation",3)
 	v.add_child(fourth_building_row)
 	building_rows.append(fourth_building_row)
-	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market"]
+	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market","Motivation"]
 	for i in range(building_names.size()):
 		var building_name=building_names[i]
 		var b:=Button.new()
 		b.text=building_name
 		b.custom_minimum_size=Vector2(54,36)
-		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else building_name))
+		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else "Motivation Center" if building_name=="Motivation" else building_name))
 		building_rows[0 if i<3 else 1 if i<6 else 2 if i<9 else 3].add_child(b)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
@@ -691,6 +705,11 @@ func enemy_count() -> int:
 	return count
 
 func begin_placement(building_name:String) -> void:
+	if building_name=="Motivation Center":
+		for existing in buildings:
+			if is_instance_valid(existing) and existing.health>0 and existing.building_type=="Motivation Center":
+				help_label.text="Only one Motivation Center can be built"
+				return
 	# Do not create a placement preview when the player cannot afford the building.
 	if not building_cost.has(building_name):
 		help_label.text="Unknown building type"
@@ -807,7 +826,7 @@ func place_building(pos:Vector2) -> void:
 	structure.position=pos
 	var shape:=Polygon2D.new()
 	shape.polygon=PackedVector2Array([Vector2(0,-26),Vector2(24,-10),Vector2(24,12),Vector2(0,28),Vector2(-24,12),Vector2(-24,-10)])
-	shape.color={"Farm":Color(0.65,0.55,0.25),"House":Color(0.65,0.3,0.22),"Barracks":Color(0.3,0.32,0.4),"Guard Tower":Color(0.35,0.55,0.65),"Wall":Color(0.45,0.42,0.38),"Warehouse":Color(0.55,0.48,0.32),"Lumber Mill":Color(0.35,0.52,0.25),"Quarry":Color(0.48,0.48,0.52),"Gold Mine":Color(0.72,0.62,0.22),"Mill":Color(0.75,0.72,0.48),"Watchtower":Color(0.55,0.68,0.72),"Market":Color(0.62,0.38,0.28)}[pending_building]
+	shape.color={"Farm":Color(0.65,0.55,0.25),"House":Color(0.65,0.3,0.22),"Barracks":Color(0.3,0.32,0.4),"Guard Tower":Color(0.35,0.55,0.65),"Wall":Color(0.45,0.42,0.38),"Warehouse":Color(0.55,0.48,0.32),"Lumber Mill":Color(0.35,0.52,0.25),"Quarry":Color(0.48,0.48,0.52),"Gold Mine":Color(0.72,0.62,0.22),"Mill":Color(0.75,0.72,0.48),"Watchtower":Color(0.55,0.68,0.72),"Market":Color(0.62,0.38,0.28),"Motivation Center":Color(0.42,0.52,0.68)}[pending_building]
 	structure.add_child(shape)
 	var label:=Label.new()
 	label.name="BuildingNameLabel"
@@ -906,7 +925,9 @@ func demolish_selected_building()->void:
 	var cost:Dictionary=building_cost.get(structure.building_type,{})
 	for key in cost:
 		resources[key]+=int(floor(float(cost[key])*0.15))
-	if structure.building_type=="House":
+	if structure.building_type=="Motivation Center":
+		stop_motivation_effect()
+	elif structure.building_type=="House":
 		population_cap=max(8,population_cap-5)
 	elif structure.building_type=="Warehouse":
 		storage_capacity=max(4000,storage_capacity-(2000 if structure.building_upgrade_level>=2 else 1000))
@@ -1100,6 +1121,19 @@ func update_status() -> void:
 
 func _process(delta:float) -> void:
 	watchtower_alert_cooldown=max(0.0,watchtower_alert_cooldown-delta)
+	if motivation_time_remaining>0.0:
+		var center_exists:=false
+		for building in buildings:
+			if is_instance_valid(building) and building.health>0 and building.team==0 and building.building_type=="Motivation Center" and building.is_complete:
+				center_exists=true
+				break
+		if center_exists:
+			motivation_time_remaining=max(0.0,motivation_time_remaining-delta)
+		else:
+			stop_motivation_effect()
+		if motivation_time_remaining<=0.0:
+			motivation_time_remaining=0.0
+		update_motivation_center_display()
 	if placing_building and is_instance_valid(building_ghost): update_building_ghost()
 	if enemy_attack_active:
 		monitor_enemy_attack()
@@ -1127,13 +1161,13 @@ func _process(delta:float) -> void:
 			if b.is_complete and b.name=="Farm":
 				deliver_resource("food",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
 			elif b.is_complete and b.name=="Lumber Mill" and b.has_active_production_worker():
-				deliver_resource("wood",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+				deliver_resource("wood",get_worker_production_amount(b))
 			elif b.is_complete and b.name=="Quarry" and b.has_active_production_worker():
-				deliver_resource("stone",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+				deliver_resource("stone",get_worker_production_amount(b))
 			elif b.is_complete and b.name=="Gold Mine" and b.has_active_production_worker():
-				deliver_resource("gold",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+				deliver_resource("gold",get_worker_production_amount(b))
 			elif b.is_complete and b.name=="Mill" and b.has_active_production_worker():
-				deliver_resource("food",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+				deliver_resource("food",get_worker_production_amount(b))
 		update_status()
 	var motion:=Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): motion.x+=1
@@ -1350,6 +1384,119 @@ func is_unit_position_blocked(pos:Vector2, mover:Node2D, attack_target:Node2D=nu
 		if is_instance_valid(other) and other!=mover and other.health>0 and pos.distance_to(other.position)<12.0:
 			return true
 	return false
+func get_motivation_center()->Node2D:
+	for building in buildings:
+		if is_instance_valid(building) and building.team==0 and building.health>0 and building.building_type=="Motivation Center" and building.is_complete:
+			return building
+	return null
+
+func get_worker_production_amount(building:Node2D)->int:
+	var amount:=10.0*(1.3 if building.building_upgrade_level>=2 else 1.0)
+	var center:=get_motivation_center()
+	if motivation_time_remaining>0.0 and center!=null:
+		amount*=1.25 if center.building_upgrade_level>=2 else 1.15
+	return int(round(amount))
+
+func activate_motivation_effect()->void:
+	var center:=get_motivation_center()
+	if center==null or not is_instance_valid(selected_building) or selected_building!=center:
+		return
+	if motivation_time_remaining>0.0:
+		return
+	var cost_gold:=900 if center.building_upgrade_level>=2 else 500
+	var cost_food:=1000 if center.building_upgrade_level>=2 else 800
+	if int(resources.gold)<cost_gold or int(resources.food)<cost_food:
+		if is_instance_valid(motivation_status_label):
+			motivation_status_label.text="Not enough resources: need %d Gold and %d Food." % [cost_gold,cost_food]
+		return
+	resources.gold-=cost_gold
+	resources.food-=cost_food
+	motivation_time_remaining=MOTIVATION_DURATION_L2 if center.building_upgrade_level>=2 else MOTIVATION_DURATION_L1
+	update_status()
+	update_motivation_center_display()
+
+func stop_motivation_effect()->void:
+	motivation_time_remaining=0.0
+	update_motivation_center_display()
+
+func update_motivation_center_display()->void:
+	if not is_instance_valid(motivation_panel):
+		return
+	var center:=get_motivation_center()
+	if center==null:
+		motivation_status_label.text="Motivation Center unavailable."
+		motivation_activate_button.disabled=true
+		return
+	if motivation_time_remaining>0.0:
+		var seconds_left:=ceili(motivation_time_remaining)
+		motivation_status_label.text="ACTIVE — %02d:%02d remaining | +%d%% worker production" % [int(seconds_left/60),seconds_left%60,25 if center.building_upgrade_level>=2 else 15]
+		motivation_activate_button.text="Active"
+		motivation_activate_button.disabled=true
+	else:
+		motivation_status_label.text="Inactive — activation costs %d Gold and %d Food." % [900 if center.building_upgrade_level>=2 else 500,1000 if center.building_upgrade_level>=2 else 800]
+		motivation_activate_button.text="Activate"
+		motivation_activate_button.disabled=false
+
+func open_motivation_center_window()->void:
+	if is_instance_valid(motivation_panel):
+		update_motivation_center_display()
+		return
+	motivation_panel=PanelContainer.new()
+	motivation_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	motivation_panel.position=Vector2(-190,-125)
+	motivation_panel.size=Vector2(380,250)
+	motivation_panel.custom_minimum_size=Vector2(380,250)
+	motivation_panel.z_index=200
+	motivation_panel.add_theme_stylebox_override("panel",make_panel_style())
+	hud.add_child(motivation_panel)
+	var v:=VBoxContainer.new()
+	v.add_theme_constant_override("separation",10)
+	motivation_panel.add_child(v)
+	var title:=Label.new()
+	title.text="MOTIVATION CENTER"
+	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	motivation_status_label=Label.new()
+	motivation_status_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	motivation_status_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(motivation_status_label)
+	motivation_activate_button=Button.new()
+	motivation_activate_button.text="Activate"
+	motivation_activate_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	motivation_activate_button.pressed.connect(activate_motivation_effect)
+	v.add_child(motivation_activate_button)
+	var upgrade_button:=Button.new()
+	upgrade_button.text="Upgrade to Level 2 — 120 Wood, 80 Gold, 60 Stone"
+	upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	var center:=get_motivation_center()
+	upgrade_button.visible=center!=null and center.building_upgrade_level<2 and not center.is_upgrading and find_town_center_level()>=2
+	upgrade_button.pressed.connect(func():
+		close_motivation_center_window()
+		upgrade_selected_building()
+	)
+	v.add_child(upgrade_button)
+	var demolish_button:=Button.new()
+	demolish_button.text="Demolish (15%)"
+	demolish_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	demolish_button.pressed.connect(func():
+		close_motivation_center_window()
+		demolish_selected_building()
+	)
+	v.add_child(demolish_button)
+	var close_button:=Button.new()
+	close_button.text="Close"
+	close_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	close_button.pressed.connect(close_motivation_center_window)
+	v.add_child(close_button)
+	update_motivation_center_display()
+
+func close_motivation_center_window()->void:
+	if is_instance_valid(motivation_panel):
+		motivation_panel.queue_free()
+	motivation_panel=null
+	motivation_status_label=null
+	motivation_activate_button=null
+
 func open_market_window()->void:
 	if market_window_open:return
 	market_window_open=true
