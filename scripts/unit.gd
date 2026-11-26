@@ -29,6 +29,7 @@ var cargo_capacity:=100
 var storage_target:Node2D=null
 var storage_recheck_timer:=0.0
 var storage_retry_timer:=0.0
+var storage_blocked_by_capacity:=false
 var build_target_site:Node2D=null
 var upgrade_target_building:Node2D=null
 var production_target_building:Node2D=null
@@ -126,6 +127,10 @@ func harvest_target(node:Node2D)->void:
 	upgrade_target_building=null
 	harvest_target_node=node
 	resume_harvest_node=node
+	storage_blocked_by_capacity=false
+	if carried_amount>0:
+		return_to_storage()
+		return
 	moving=true
 	destination=node.position
 	set_route(destination)
@@ -253,7 +258,7 @@ func update_health_bar()->void:
 
 func _process(delta:float)->void:
 	# Retry storage assignment for any full worker whose storage target was lost.
-	if team==0 and carried_amount>=cargo_capacity and storage_target==null:
+	if team==0 and carried_amount>=cargo_capacity and storage_target==null and not storage_blocked_by_capacity:
 		storage_retry_timer-=delta
 		if storage_retry_timer<=0.0:
 			return_to_storage()
@@ -288,6 +293,7 @@ func _process(delta:float)->void:
 				else:
 					# Storage is full: stop here instead of repeatedly attempting an impossible deposit.
 					storage_target=null
+					storage_blocked_by_capacity=true
 					moving=false
 		else:
 			moving=true
