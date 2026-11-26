@@ -22,6 +22,12 @@ var touch_pending := false
 var touch_start_screen := Vector2.ZERO
 var touch_pan := false
 var touch_unit_start := false
+var touch_dragging_preview:=false
+var preview_initialized:=false
+var selected_frame:Node2D=null
+var preview_confirm_button:Button=null
+var preview_cancel_button:Button=null
+const TOUCH_DRAG_THRESHOLD:=15.0
 var hud_collapsed := false
 var market_panel:PanelContainer
 var market_sell_option:OptionButton
@@ -243,178 +249,144 @@ func screen_to_world(p:Vector2) -> Vector2:
 	return (p-camera_offset)/zoom_level
 
 func _input(event:InputEvent) -> void:
-	# Treat the Motivation Center as a modal window: prevent the game map from
-	# processing clicks/touches while its controls are open.
-	if is_instance_valid(motivation_panel):
-		return
-	if market_window_open:
+	if is_instance_valid(motivation_panel) or market_window_open:return
+	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
+		cancel_build_placement()
 		return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed:
-				drag_start=screen_to_world(event.position)
-				drag_current=drag_start
+				touch_start_screen=event.position
+				touch_dragging_preview=placing_building and preview_initialized and is_point_on_preview(screen_to_world(event.position))
 				dragging=true
+				touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
 			elif dragging:
-				finish_selection(screen_to_world(event.position))
+				var moved=event.position.distance_to(touch_start_screen)
+				if placing_building:
+					if not preview_initialized or (not touch_dragging_preview and moved<=TOUCH_DRAG_THRESHOLD):
+						placement_cursor_world=screen_to_world(event.position)
+						preview_initialized=true
+						update_building_ghost()
+					elif touch_dragging_preview and moved>TOUCH_DRAG_THRESHOLD:
+						placement_cursor_world=screen_to_world(event.position)
+						update_building_ghost()
+				elif moved<=TOUCH_DRAG_THRESHOLD:
+					touch_tap(screen_to_world(event.position))
+				elif not touch_unit_start:
+					finish_selection(screen_to_world(event.position))
 				dragging=false
+				touch_dragging_preview=false
+				get_node("SelectionOverlay").clear_rect()
 		elif event.button_index==MOUSE_BUTTON_RIGHT and event.pressed:
-			if placing_building: place_building(screen_to_world(event.position))
-			else: attack_or_move(screen_to_world(event.position))
+			if placing_building:cancel_build_placement()
+			else:attack_or_move(screen_to_world(event.position))
 		elif event.button_index==MOUSE_BUTTON_WHEEL_UP:
-			zoom_level=min(zoom_level*1.12,2.2)
-			update_view()
+			zoom_level=min(zoom_level*1.12,2.2);update_view()
 		elif event.button_index==MOUSE_BUTTON_WHEEL_DOWN:
-			zoom_level=max(zoom_level/1.12,0.35)
-			update_view()
-	elif event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
-		placing_building=false
-		if is_instance_valid(building_ghost): building_ghost.queue_free(); building_ghost=null
-		if is_instance_valid(help_label): help_label.text="Placement cancelled"
-	elif event is InputEventMouseMotion:
-		if placing_building:
-			placement_cursor_world=screen_to_world(event.position)
-			update_building_ghost()
-		if dragging:
-			drag_current=screen_to_world(event.position)
-			overlay_update()
+			zoom_level=max(zoom_level/1.12,0.35);update_view()
+	elif event is InputEventMouseMotion and dragging:
+		if placing_building and touch_dragging_preview:
+			placement_cursor_world=screen_to_world(event.position);update_building_ghost()
+		elif not placing_building and event.position.distance_to(touch_start_screen)>TOUCH_DRAG_THRESHOLD and not touch_unit_start:
+			drag_current=screen_to_world(event.position);overlay_update()
 	elif event is InputEventScreenTouch:
 		if event.pressed:
-			if event.position.x<520.0 and event.position.y<280.0:
-				dragging=false
-				return
+			if event.position.x<520.0 and event.position.y<280.0:return
 			touch_start_screen=event.position
-			placement_cursor_world=screen_to_world(event.position)
-			if placing_building: update_building_ghost()
-			drag_start=screen_to_world(event.position)
-			drag_current=drag_start
-			touch_unit_start=find_player_unit_at(drag_start)!=null
-			touch_pan=false
+			touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
+			touch_dragging_preview=placing_building and preview_initialized and is_point_on_preview(screen_to_world(event.position))
 			dragging=true
-		else:
-			if dragging:
-				var moved=event.position.distance_to(touch_start_screen)
-				if touch_pan and moved>20.0:
-					pass
-				elif placing_building:
-					place_building(screen_to_world(event.position))
-				elif moved>20.0 and touch_unit_start:
-					finish_selection(screen_to_world(event.position))
-				else:
-					touch_tap(screen_to_world(event.position))
-				dragging=false
-				get_node("SelectionOverlay").clear_rect()
-				update_status()
-			dragging=false
+		elif dragging:
+			var moved=event.position.distance_to(touch_start_screen)
+			if placing_building:
+				if not preview_initialized or (not touch_dragging_preview and moved<=TOUCH_DRAG_THRESHOLD):
+					placement_cursor_world=screen_to_world(event.position);preview_initialized=true;update_building_ghost()
+				elif touch_dragging_preview and moved>TOUCH_DRAG_THRESHOLD:
+					placement_cursor_world=screen_to_world(event.position);update_building_ghost()
+			elif moved<=TOUCH_DRAG_THRESHOLD:
+				touch_tap(screen_to_world(event.position))
+			dragging=false;touch_dragging_preview=false
+			get_node("SelectionOverlay").clear_rect();update_status()
 	elif event is InputEventScreenDrag and dragging:
-		placement_cursor_world=screen_to_world(event.position)
-		if placing_building: update_building_ghost()
-		if not touch_unit_start and not placing_building:
-			touch_pan=true
-			camera_offset+=event.relative
-			update_view()
-		else:
-			drag_current=screen_to_world(event.position)
-			overlay_update()
+		var moved=event.position.distance_to(touch_start_screen)
+		if placing_building and touch_dragging_preview:
+			placement_cursor_world=screen_to_world(event.position);update_building_ghost()
+		elif not placing_building and moved>TOUCH_DRAG_THRESHOLD and not touch_unit_start:
+			camera_offset+=event.relative;touch_pan=true;update_view()
 
 func find_player_unit_at(pos:Vector2)->Node2D:
-	var nearest:Node2D=null
-	var best=48.0
 	for unit in units:
-		if is_instance_valid(unit) and unit.team==0:
-			var d=unit.position.distance_to(pos)
-			if d<best:
-				best=d
-				nearest=unit
-	return nearest
+		if is_instance_valid(unit) and unit.team==0 and unit.health>0 and not unit.sheltered:
+			if Rect2(unit.position-Vector2(11,15),Vector2(22,30)).has_point(pos):return unit
+	return null
 
 func find_town_center_at(pos:Vector2)->Node2D:
-	for building in buildings:
-		if is_instance_valid(building) and building.team==0 and building.building_type=="Town Center" and building.health>0 and pos.distance_to(building.position)<90.0:
-			return building
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Town Center" and b.health>0 and Rect2(b.position-Vector2(36,42),Vector2(72,84)).has_point(pos):return b
 	return null
 
 func find_player_building_at(pos:Vector2)->Node2D:
-	var nearest:Node2D=null
-	var best_distance:=58.0
-	for building in buildings:
-		if is_instance_valid(building) and building.team==0 and building.building_type!="Town Center" and building.health>0 and building.is_complete:
-			var distance=building.position.distance_to(pos)
-			if distance<best_distance:
-				best_distance=distance
-				nearest=building
-	return nearest
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type!="Town Center" and b.health>0 and b.is_complete and Rect2(b.position-Vector2(26,30),Vector2(52,60)).has_point(pos):return b
+	return null
+
+func find_resource_node_at(pos:Vector2)->Node2D:
+	for node in resource_nodes:
+		if is_instance_valid(node) and node.amount>0 and Rect2(node.position-Vector2(19,17),Vector2(38,34)).has_point(pos):return node
+	return null
 
 func touch_tap(pos:Vector2)->void:
 	if placing_building:
-		place_building(pos)
+		if not preview_initialized:
+			placement_cursor_world=pos;preview_initialized=true;update_building_ghost()
 		return
-	# Manually selected workers can be reassigned to an upgrade in progress.
+	var resource_hit=find_resource_node_at(pos)
+	if resource_hit!=null and not selected.is_empty():
+		for worker in selected:
+			if is_instance_valid(worker) and worker.team==0:worker.harvest_target(resource_hit)
+		help_label.text="Workers assigned to gather %s" % resource_hit.resource_type
+		return
 	var upgrading_target=find_upgrading_building_at(pos)
 	if upgrading_target!=null and not selected.is_empty():
-		assign_selected_workers_to_upgrade(upgrading_target)
-		return
-	# When workers are selected, resolve construction-site hits first and
-	# issue the build order before any building-selection or movement logic.
+		assign_selected_workers_to_upgrade(upgrading_target);return
 	var site=find_unfinished_building_at(pos)
 	if site!=null and not selected.is_empty():
 		var assigned:=false
 		for worker in selected:
-			if is_instance_valid(worker) and worker.team==0:
-				worker.build_target(site)
-				assigned=true
-		if assigned:
-			help_label.text="Builders reassigned to construction!"
-			return
+			if is_instance_valid(worker) and worker.team==0:worker.build_target(site);assigned=true
+		if assigned:help_label.text="Builders reassigned to construction!";return
 	if site!=null:
-		clear_selection()
-		selected_building=site
+		clear_selection();selected_building=site;create_selection_frame(site,Vector2(52,60))
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=true
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=false
-		help_label.text="Construction selected — cancel to recover 60% of cost"
-		return
-	var town_center=find_town_center_at(pos)
-	if town_center!=null:
-		clear_selection()
-		selected_building=town_center
-		if is_instance_valid(upgrade_town_center_button): upgrade_town_center_button.visible=true
-		if is_instance_valid(demolish_building_button): demolish_building_button.visible=false
+		help_label.text="Construction selected — cancel to recover 60% of cost";return
+	var tc=find_town_center_at(pos)
+	if tc!=null:
+		clear_selection();selected_building=tc;create_selection_frame(tc,Vector2(72,84))
+		if is_instance_valid(upgrade_town_center_button):upgrade_town_center_button.visible=true
+		if is_instance_valid(demolish_building_button):demolish_building_button.visible=false
 		if is_instance_valid(recall_workers_button):
-			recall_workers_button.visible=true
-			recall_workers_button.text="Release Workers" if workers_recalled else "Recall Workers"
-		help_label.text="Town Center selected — upgrade to Level 2"
-		return
+			recall_workers_button.visible=true;recall_workers_button.text="Release Workers" if workers_recalled else "Recall Workers"
+		help_label.text="Town Center selected — upgrade to Level 2";return
 	var structure=find_player_building_at(pos)
 	if structure!=null:
+		clear_selection();selected_building=structure;create_selection_frame(structure,Vector2(52,60))
 		if structure.building_type=="Market":
-			clear_selection()
-			selected_building=structure
-			open_market_window()
-			return
+			open_market_window();return
 		if structure.building_type=="Motivation Center":
-			clear_selection()
-			selected_building=structure
 			if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
 			if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
-			open_motivation_center_window()
-			return
-		clear_selection()
-		selected_building=structure
+			open_motivation_center_window();return
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
 		if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
 		if structure.building_type in ["Guard Tower","Watchtower"]:structure.set_range_visible(true)
-		help_label.text="Building selected — demolish or upgrade (Town Center Level 2 unlocks upgrades)"
-		return
+		help_label.text="Building selected — demolish or upgrade (Town Center Level 2 unlocks upgrades)";return
 	var unit=find_player_unit_at(pos)
 	if unit!=null:
-		clear_selection()
-		add_selection(unit)
-		return
-	if not selected.is_empty():
-		attack_or_move(pos)
-	else:
-		clear_selection()
+		clear_selection();add_selection(unit);return
+	if not selected.is_empty():attack_or_move(pos)
+	else:clear_selection()
 
 func overlay_update() -> void:
 	var overlay:Node = get_node("SelectionOverlay")
@@ -422,19 +394,15 @@ func overlay_update() -> void:
 
 func finish_selection(end_pos:Vector2) -> void:
 	if placing_building:
-		place_building(end_pos)
-		get_node("SelectionOverlay").clear_rect()
-		return
-	var box := Rect2(drag_start,end_pos-drag_start).abs()
+		get_node("SelectionOverlay").clear_rect();return
+	var box=Rect2(drag_start,end_pos-drag_start).abs()
 	if box.size.length()<14.0:
 		touch_tap(end_pos)
 	else:
 		clear_selection()
 		for u in units:
-			if u.team==0 and box.has_point(u.position):
-				add_selection(u)
-	get_node("SelectionOverlay").clear_rect()
-	update_status()
+			if is_instance_valid(u) and u.team==0 and not u.sheltered and box.has_point(u.position):add_selection(u)
+	get_node("SelectionOverlay").clear_rect();update_status()
 
 func toggle_recall_workers()->void:
 	var tc:=selected_building
@@ -540,6 +508,7 @@ func town_center_destroyed(tc:Node2D)->void:
 
 func clear_selection() -> void:
 	close_motivation_center_window()
+	clear_selection_frame()
 	for u in selected:
 		u.set_selected(false)
 	selected.clear()
@@ -551,6 +520,21 @@ func clear_selection() -> void:
 	if is_instance_valid(upgrade_town_center_button):upgrade_town_center_button.visible=false
 	if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=false
 	if is_instance_valid(recall_workers_button):recall_workers_button.visible=false
+
+func clear_selection_frame()->void:
+	if is_instance_valid(selected_frame):selected_frame.queue_free()
+	selected_frame=null
+
+func create_selection_frame(target:Node2D,frame_size:Vector2)->void:
+	clear_selection_frame()
+	var frame:=Line2D.new()
+	frame.width=2.2
+	frame.default_color=Color(1.0,0.88,0.25,1.0)
+	frame.points=PackedVector2Array([Vector2(-frame_size.x/2,-frame_size.y/2),Vector2(frame_size.x/2,-frame_size.y/2),Vector2(frame_size.x/2,frame_size.y/2),Vector2(-frame_size.x/2,frame_size.y/2),Vector2(-frame_size.x/2,-frame_size.y/2)])
+	frame.position=target.position;frame.z_index=15;add_child(frame);selected_frame=frame
+
+func is_point_on_preview(pos:Vector2)->bool:
+	return is_instance_valid(building_ghost) and Rect2(building_ghost.position-Vector2(26,30),Vector2(52,60)).has_point(pos)
 
 func add_selection(u:Node2D) -> void:
 	if not selected.has(u):
@@ -886,51 +870,28 @@ func enemy_count() -> int:
 	return count
 
 func begin_placement(building_name:String) -> void:
+	if placing_building:
+		help_label.text="Cancel the current placement before choosing another building";return
 	if building_name=="Motivation Center":
 		for existing in buildings:
 			if is_instance_valid(existing) and existing.health>0 and existing.building_type=="Motivation Center":
-				help_label.text="Only one Motivation Center can be built"
-				return
-	# Do not create a placement preview when the player cannot afford the building.
-	if not building_cost.has(building_name):
-		help_label.text="Unknown building type"
-		return
+				help_label.text="Only one Motivation Center can be built";return
+	if not building_cost.has(building_name):help_label.text="Unknown building type";return
 	for key in building_cost[building_name]:
 		if resources.get(key,0)<building_cost[building_name][key]:
-			placing_building=false
-			pending_building=""
-			if is_instance_valid(building_ghost):
-				building_ghost.queue_free()
-				building_ghost=null
-			placement_cursor_valid=false
-			help_label.text="Not enough resources to build %s" % building_name
-			return
-	placing_building=true
-	pending_building=building_name
+			help_label.text="Not enough resources to build %s" % building_name;return
+	placing_building=true;pending_building=building_name;preview_initialized=false
 	if not is_instance_valid(building_ghost):
-		building_ghost=Node2D.new()
-		building_ghost.name="BuildingPlacementGhost"
-		building_ghost.z_index=20
+		building_ghost=Node2D.new();building_ghost.name="BuildingPlacementGhost";building_ghost.z_index=20
 		var shape:=Polygon2D.new()
-		shape.name="GhostShape"
-		shape.polygon=PackedVector2Array([Vector2(0,-26),Vector2(24,-10),Vector2(24,12),Vector2(0,28),Vector2(-24,12),Vector2(-24,-10)])
-		shape.color=Color(0.2,1.0,0.25,0.78)
-		building_ghost.add_child(shape)
+		shape.name="GhostShape";shape.polygon=PackedVector2Array([Vector2(0,-26),Vector2(24,-10),Vector2(24,12),Vector2(0,28),Vector2(-24,12),Vector2(-24,-10)])
+		shape.color=Color(0.2,1.0,0.25,0.78);building_ghost.add_child(shape)
 		var outline:=Line2D.new()
-		outline.name="GhostOutline"
-		outline.points=PackedVector2Array([Vector2(0,-26),Vector2(24,-10),Vector2(24,12),Vector2(0,28),Vector2(-24,12),Vector2(-24,-10),Vector2(0,-26)])
-		outline.width=3.0
-		outline.default_color=Color(0.15,1.0,0.2,1.0)
-		building_ghost.add_child(outline)
-		var label:=Label.new()
-		label.name="GhostLabel"
-		label.position=Vector2(-32,-42)
-		label.scale=Vector2(0.8,0.8)
-		building_ghost.add_child(label)
-		add_child(building_ghost)
-	placement_cursor_world=screen_to_world(get_viewport().get_mouse_position())
-	update_building_ghost()
-	help_label.text="Move cursor, then tap/click to place %s (Esc cancels)" % building_name
+		outline.name="GhostOutline";outline.points=PackedVector2Array([Vector2(0,-26),Vector2(24,-10),Vector2(24,12),Vector2(0,28),Vector2(-24,12),Vector2(-24,-10),Vector2(0,-26)])
+		outline.width=3.0;outline.default_color=Color(0.15,1.0,0.2,1.0);building_ghost.add_child(outline)
+		var label:=Label.new();label.name="GhostLabel";label.position=Vector2(-32,-42);label.scale=Vector2(0.8,0.8);building_ghost.add_child(label);add_child(building_ghost)
+	placement_cursor_world=screen_to_world(get_viewport_rect().size/2);update_building_ghost()
+	create_placement_buttons();help_label.text="Tap ground to preview, drag preview, then confirm"
 
 func get_placement_position(pos:Vector2)->Vector2:
 	return grid_to_screen(world_to_grid(pos))
@@ -964,18 +925,45 @@ func is_building_placement_valid(pos:Vector2)->bool:
 		if resources.get(key,0)<building_cost[pending_building][key]:return false
 	return true
 
+func create_placement_buttons()->void:
+	if is_instance_valid(preview_confirm_button):preview_confirm_button.queue_free()
+	if is_instance_valid(preview_cancel_button):preview_cancel_button.queue_free()
+	preview_cancel_button=Button.new();preview_cancel_button.text="×";preview_cancel_button.custom_minimum_size=Vector2(48,48);preview_cancel_button.size=Vector2(48,48);preview_cancel_button.z_index=120;preview_cancel_button.add_theme_font_size_override("font_size",28);preview_cancel_button.pressed.connect(cancel_build_placement);hud.add_child(preview_cancel_button)
+	preview_confirm_button=Button.new();preview_confirm_button.text="✓";preview_confirm_button.custom_minimum_size=Vector2(48,48);preview_confirm_button.size=Vector2(48,48);preview_confirm_button.z_index=120;preview_confirm_button.add_theme_font_size_override("font_size",24);preview_confirm_button.pressed.connect(confirm_build_placement);hud.add_child(preview_confirm_button)
+	position_placement_buttons()
+
+func position_placement_buttons()->void:
+	if not placing_building or not is_instance_valid(building_ghost):return
+	var screen_pos=camera_offset+building_ghost.position*zoom_level
+	if is_instance_valid(preview_cancel_button):preview_cancel_button.position=screen_pos+Vector2(-58,-72)
+	if is_instance_valid(preview_confirm_button):preview_confirm_button.position=screen_pos+Vector2(10,-72)
+
+func confirm_build_placement()->void:
+	if not placing_building or not preview_initialized:return
+	if not placement_cursor_valid:help_label.text="Invalid placement: move the red preview";return
+	place_building(placement_cursor_world)
+
+func cancel_build_placement()->void:
+	if not placing_building:return
+	placing_building=false;pending_building="";preview_initialized=false;placement_cursor_valid=false
+	if is_instance_valid(building_ghost):building_ghost.queue_free()
+	building_ghost=null
+	if is_instance_valid(preview_confirm_button):preview_confirm_button.queue_free()
+	if is_instance_valid(preview_cancel_button):preview_cancel_button.queue_free()
+	preview_confirm_button=null;preview_cancel_button=null;help_label.text="Building placement cancelled"
+
 func update_building_ghost()->void:
 	if not placing_building or not is_instance_valid(building_ghost):return
 	var snapped=get_placement_position(placement_cursor_world)
-	building_ghost.position=snapped
-	placement_cursor_valid=is_building_placement_valid(snapped)
+	building_ghost.position=snapped;placement_cursor_valid=is_building_placement_valid(snapped)
 	var shape=building_ghost.get_node("GhostShape") as Polygon2D
 	shape.color=Color(0.1,1.0,0.15,0.82) if placement_cursor_valid else Color(1.0,0.08,0.08,0.82)
 	var outline=building_ghost.get_node("GhostOutline") as Line2D
 	outline.default_color=Color(0.05,0.9,0.1,1.0) if placement_cursor_valid else Color(1.0,0.05,0.05,1.0)
 	var label=building_ghost.get_node("GhostLabel") as Label
-	label.text=pending_building + (" - VALID" if placement_cursor_valid else " - INVALID")
+	label.text=pending_building+(" - VALID" if placement_cursor_valid else " - INVALID")
 	label.modulate=Color(0.5,1.0,0.5) if placement_cursor_valid else Color(1.0,0.35,0.35)
+	position_placement_buttons()
 
 func is_position_inside_map(pos:Vector2)->bool:
 	var cell=world_to_grid(pos)
@@ -1019,22 +1007,19 @@ func place_building(pos:Vector2) -> void:
 	buildings.append(structure)
 	construction_sites.append(structure)
 	assign_builder_to_site(structure)
-	placing_building=false
-	if is_instance_valid(building_ghost): building_ghost.queue_free(); building_ghost=null
+	placing_building=false;preview_initialized=false
+	if is_instance_valid(building_ghost):building_ghost.queue_free();building_ghost=null
+	if is_instance_valid(preview_confirm_button):preview_confirm_button.queue_free()
+	if is_instance_valid(preview_cancel_button):preview_cancel_button.queue_free()
+	preview_confirm_button=null;preview_cancel_button=null
 	help_label.text="Tap units then tap destination. Drag to pan."
 	update_status()
 
 
 func find_upgrading_building_at(pos:Vector2)->Node2D:
-	var nearest:Node2D=null
-	var best_distance:=110.0
 	for structure in buildings:
-		if is_instance_valid(structure) and structure.team==0 and structure.is_upgrading:
-			var distance=structure.position.distance_to(pos)
-			if distance<best_distance:
-				best_distance=distance
-				nearest=structure
-	return nearest
+		if is_instance_valid(structure) and structure.team==0 and structure.is_upgrading and Rect2(structure.position-Vector2(26,30),Vector2(52,60)).has_point(pos):return structure
+	return null
 
 func assign_selected_workers_to_upgrade(structure:Node2D)->void:
 	if not is_instance_valid(structure) or not structure.is_upgrading:return
@@ -1056,17 +1041,9 @@ func assign_selected_workers_to_upgrade(structure:Node2D)->void:
 		help_label.text="No new workers assigned — %d/8 workers" % structure.get_upgrade_worker_count()
 
 func find_unfinished_building_at(pos:Vector2)->Node2D:
-	var nearest:Node2D=null
-	# Larger hit radius for unfinished sites, whose labels and progress bars
-	# can make their visible footprint larger than their center.
-	var best_distance:=110.0
 	for site in construction_sites:
-		if is_instance_valid(site) and site.team==0 and not site.is_complete:
-			var distance=site.position.distance_to(pos)
-			if distance<best_distance:
-				best_distance=distance
-				nearest=site
-	return nearest
+		if is_instance_valid(site) and site.team==0 and not site.is_complete and Rect2(site.position-Vector2(26,30),Vector2(52,60)).has_point(pos):return site
+	return null
 
 func cancel_selected_construction()->void:
 	var site=selected_building
@@ -1302,6 +1279,7 @@ func update_status() -> void:
 		status_label.text="Wood: %d  Food: %d  Gold: %d  Stone: %d\nPopulation: %d/%d  Selected: %d  Enemies: %d\nBuildings: %d  Enemy base: %d  Storage: %d" % [resources.wood,resources.food,resources.gold,resources.stone,population,population_cap,selected.size(),enemy_count(),buildings.size(),enemy_buildings.size(),storage_capacity]
 
 func _process(delta:float) -> void:
+	if placing_building and is_instance_valid(building_ghost):update_building_ghost()
 	if worker_training_remaining>0.0:
 		worker_training_remaining=max(0.0,worker_training_remaining-delta)
 		if is_instance_valid(recruit_worker_button):
