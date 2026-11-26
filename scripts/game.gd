@@ -458,6 +458,7 @@ func recall_workers_into_tc(tc:Node2D)->void:
 			"upgrade":worker.upgrade_target_building,
 			"target":worker.target,
 			"destination":worker.destination,
+			"position":worker.position,
 			"moving":worker.moving,
 			"was_idle":worker.harvest_target_node==null and worker.storage_target==null and worker.build_target_site==null and worker.upgrade_target_building==null and worker.target==null and worker.carried_amount<=0 and not worker.moving,
 			"carried_amount":worker.carried_amount,
@@ -516,10 +517,14 @@ func release_sheltered_workers(tc:Node2D)->void:
 			worker.moving=true
 			worker.set_route(worker.destination)
 		else:
-			worker.destination=worker.position
-			worker.moving=false
-			worker.path_pending=false
-			worker.route=PackedVector2Array()
+			worker.destination=saved.get("position",worker.position)
+			if worker.position.distance_to(worker.destination)>18.0:
+				worker.moving=true
+				worker.set_route(worker.destination)
+			else:
+				worker.moving=false
+				worker.path_pending=false
+				worker.route=PackedVector2Array()
 
 func town_center_destroyed(tc:Node2D)->void:
 	if not is_instance_valid(tc):return
