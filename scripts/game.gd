@@ -173,6 +173,17 @@ func get_nearest_resource_node(pos:Vector2,resource_type:String)->Node2D:
 			if d<best:best=d;nearest=node
 	return nearest
 
+func reduce_resources_to_capacity()->void:
+	var total_resources:=0
+	for amount in resources.values():
+		total_resources+=int(amount)
+	var excess=max(0,total_resources-storage_capacity)
+	for resource_type in ["wood","food","gold","stone"]:
+		if excess<=0:break
+		var removed=min(excess,int(resources.get(resource_type,0)))
+		resources[resource_type]-=removed
+		excess-=removed
+
 func deliver_resource(resource_type:String, quantity:int)->int:
 	var total_resources:=0
 	for amount in resources.values():
@@ -879,8 +890,9 @@ func demolish_selected_building()->void:
 	if structure.building_type=="House":
 		population_cap=max(8,population_cap-5)
 	elif structure.building_type=="Warehouse":
-		storage_capacity=max(2000,storage_capacity-1500)
+		storage_capacity=max(4000,storage_capacity-(2000 if structure.building_upgrade_level>=2 else 1000))
 		storage_points.erase(structure)
+		reduce_resources_to_capacity()
 	buildings.erase(structure)
 	construction_sites.erase(structure)
 	if is_instance_valid(structure):structure.queue_free()
@@ -1000,7 +1012,7 @@ func building_completed(b:Node2D)->void:
 		if b.building_type=="House" and b.building_upgrade_level>=2:
 			population_cap+=3
 		elif b.building_type=="Warehouse":
-			storage_capacity+=1500
+			storage_capacity+=1000
 			if b.building_upgrade_level>=2:
 				storage_capacity+=1000
 			if not storage_points.has(b):
