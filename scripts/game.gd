@@ -255,6 +255,8 @@ func _input(event:InputEvent) -> void:
 		return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
+			if event.pressed and ((event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position)):
+				return
 			if event.pressed:
 				touch_start_screen=event.position
 				drag_start=screen_to_world(event.position)
@@ -293,7 +295,7 @@ func _input(event:InputEvent) -> void:
 			drag_current=screen_to_world(event.position);overlay_update()
 	elif event is InputEventScreenTouch:
 		if event.pressed:
-			if event.position.x<520.0 and event.position.y<280.0:return
+			if (event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position):return
 			touch_start_screen=event.position
 			touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
 			touch_dragging_preview=placing_building and preview_initialized and is_point_on_preview(screen_to_world(event.position))
@@ -539,6 +541,11 @@ func create_selection_frame(target:Node2D,frame_size:Vector2)->void:
 	frame.default_color=Color(1.0,0.88,0.25,1.0)
 	frame.points=PackedVector2Array([Vector2(-frame_size.x/2,-frame_size.y/2),Vector2(frame_size.x/2,-frame_size.y/2),Vector2(frame_size.x/2,frame_size.y/2),Vector2(-frame_size.x/2,frame_size.y/2),Vector2(-frame_size.x/2,-frame_size.y/2)])
 	frame.position=target.position;frame.z_index=15;add_child(frame);selected_frame=frame
+
+func is_screen_over_placement_controls(screen_pos:Vector2)->bool:
+	for button in [preview_confirm_button,preview_cancel_button]:
+		if is_instance_valid(button) and Rect2(button.position,button.size).has_point(screen_pos):return true
+	return false
 
 func is_point_on_preview(pos:Vector2)->bool:
 	return is_instance_valid(building_ghost) and Rect2(building_ghost.position-Vector2(26,30),Vector2(52,60)).has_point(pos)
