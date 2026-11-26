@@ -575,8 +575,6 @@ func select_idle_workers()->void:
 			continue
 		if is_instance_valid(u.target) or is_instance_valid(u.harvest_target_node) or is_instance_valid(u.resume_harvest_node) or is_instance_valid(u.storage_target) or is_instance_valid(u.build_target_site) or is_instance_valid(u.upgrade_target_building) or is_instance_valid(u.production_target_building):
 			continue
-		if not u.route.is_empty():
-			continue
 		add_selection(u)
 	update_status()
 	help_label.text="Selected %d idle worker(s)" % selected.size()
