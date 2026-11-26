@@ -438,7 +438,7 @@ func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
 				steer+=separation.normalized()*(28.0-distance)/28.0
 	var move_direction=direction.normalized()
 	if steer.length()>0.01:
-		move_direction=(move_direction+steer*0.65).normalized()
+		move_direction=(move_direction+steer*0.35).normalized()
 	var step=move_direction*min(speed*delta,direction.length())
 	var candidate=position+step
 	if not parent.has_method("is_unit_position_blocked") or not parent.is_unit_position_blocked(candidate,self,target_override):
