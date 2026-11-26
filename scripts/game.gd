@@ -19,6 +19,7 @@ var camera_offset := Vector2(0, -640)
 var zoom_level := 1.0
 var drag_current := Vector2.ZERO
 var touch_pending := false
+var ignore_emulated_mouse_for_touch:=false
 var touch_start_screen := Vector2.ZERO
 var touch_pan := false
 var touch_unit_start := false
@@ -253,6 +254,11 @@ func _input(event:InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
 		cancel_build_placement()
 		return
+	if event is InputEventMouseButton or event is InputEventMouseMotion:
+		if ignore_emulated_mouse_for_touch:
+			if event is InputEventMouseButton and event.button_index==MOUSE_BUTTON_LEFT and not event.pressed:
+				ignore_emulated_mouse_for_touch=false
+			return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed and ((event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position)):
@@ -295,6 +301,7 @@ func _input(event:InputEvent) -> void:
 			drag_current=screen_to_world(event.position);overlay_update()
 	elif event is InputEventScreenTouch:
 		if event.pressed:
+			ignore_emulated_mouse_for_touch=true
 			if (event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position):return
 			touch_start_screen=event.position
 			touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
