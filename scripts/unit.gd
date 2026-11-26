@@ -93,7 +93,7 @@ func clear_production_assignment()->void:
 	production_target_building=null
 
 func assign_to_production(site:Node2D)->bool:
-	if team!=0 or site==null or not is_instance_valid(site) or not site.is_complete or not site.is_production_building():return false
+	if team!=0 or carried_amount>0 or site==null or not is_instance_valid(site) or not site.is_complete or not site.is_production_building():return false
 	clear_production_assignment()
 	if not site.register_production_worker(self):return false
 	target=null
