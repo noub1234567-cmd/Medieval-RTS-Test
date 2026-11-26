@@ -124,7 +124,7 @@ func unregister_production_worker(worker:Node2D)->void:
 	if production_worker==worker:production_worker=null
 
 func has_active_production_worker()->bool:
-	return is_production_building() and is_complete and team==0 and is_instance_valid(production_worker) and production_worker.health>0 and production_worker.production_target_building==self
+	return is_production_building() and is_complete and team==0 and is_instance_valid(production_worker) and production_worker.health>0 and production_worker.is_working_for_production(self)
 
 func begin_upgrade()->void:
 	if building_type!="Town Center" or town_center_level>=2:return
