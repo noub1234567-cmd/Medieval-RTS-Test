@@ -72,6 +72,8 @@ var cancel_build_button: Button
 var demolish_building_button: Button
 var upgrade_town_center_button: Button
 var upgrade_building_button: Button
+var recall_workers_button: Button
+var workers_recalled:=false
 var pause_toggle_button: Button
 var game_paused := false
 var enemy_attack_losses := 0
@@ -374,6 +376,9 @@ func touch_tap(pos:Vector2)->void:
 		selected_building=town_center
 		if is_instance_valid(upgrade_town_center_button): upgrade_town_center_button.visible=true
 		if is_instance_valid(demolish_building_button): demolish_building_button.visible=false
+		if is_instance_valid(recall_workers_button):
+			recall_workers_button.visible=true
+			recall_workers_button.text="Release Workers" if workers_recalled else "Recall Workers"
 		help_label.text="Town Center selected — upgrade to Level 2"
 		return
 	var structure=find_player_building_at(pos)
@@ -428,6 +433,90 @@ func finish_selection(end_pos:Vector2) -> void:
 	get_node("SelectionOverlay").clear_rect()
 	update_status()
 
+func toggle_recall_workers()->void:
+	var tc:=selected_building
+	if not is_instance_valid(tc) or tc.team!=0 or tc.building_type!="Town Center" or tc.health<=0:
+		return
+	if workers_recalled:
+		release_sheltered_workers(tc)
+	else:
+		recall_workers_into_tc(tc)
+	workers_recalled=not workers_recalled
+	if is_instance_valid(recall_workers_button):
+		recall_workers_button.text="Release Workers" if workers_recalled else "Recall Workers"
+	help_label.text="Workers sheltered inside Town Center." if workers_recalled else "Workers released and orders restored."
+	update_status()
+
+func recall_workers_into_tc(tc:Node2D)->void:
+	for worker in units:
+		if not is_instance_valid(worker) or worker.team!=0 or worker.health<=0 or worker.sheltered:
+			continue
+		var saved:Dictionary={
+			"harvest":worker.harvest_target_node,
+			"resume_harvest":worker.resume_harvest_node,
+			"build":worker.build_target_site,
+			"upgrade":worker.upgrade_target_building,
+			"target":worker.target,
+			"destination":worker.destination,
+			"moving":worker.moving,
+			"carried_amount":worker.carried_amount,
+			"carried_type":worker.carried_type
+		}
+		worker.shelter_saved_state=saved
+		worker.clear_production_assignment()
+		if is_instance_valid(worker.upgrade_target_building):
+			worker.upgrade_target_building.unregister_upgrade_worker(worker)
+		worker.harvest_target_node=null
+		worker.resume_harvest_node=null
+		worker.storage_target=null
+		worker.build_target_site=null
+		worker.upgrade_target_building=null
+		worker.target=null
+		worker.moving=false
+		worker.path_pending=false
+		worker.route=PackedVector2Array()
+		worker.sheltered=true
+		worker.visible=false
+		worker.position=tc.position
+
+func release_sheltered_workers(tc:Node2D)->void:
+	for worker in units:
+		if not is_instance_valid(worker) or worker.team!=0 or not worker.sheltered:
+			continue
+		worker.sheltered=false
+		worker.visible=true
+		worker.position=tc.position+Vector2((worker.get_instance_id()%5)*8-16,24)
+		var saved=worker.shelter_saved_state
+		worker.shelter_saved_state={}
+		var cargo=int(saved.get("carried_amount",worker.carried_amount))
+		worker.carried_amount=cargo
+		worker.carried_type=str(saved.get("carried_type",worker.carried_type))
+		var harvest=saved.get("harvest")
+		var build=saved.get("build")
+		var upgrade=saved.get("upgrade")
+		var old_target=saved.get("target")
+		if is_instance_valid(build) and not build.is_complete:
+			worker.build_target(build)
+		elif is_instance_valid(upgrade) and upgrade.is_upgrading:
+			worker.upgrade_target(upgrade)
+		elif is_instance_valid(harvest) and harvest.amount>0:
+			worker.harvest_target(harvest)
+		elif is_instance_valid(old_target) and old_target.health>0:
+			worker.attack_target(old_target)
+		elif cargo>0:
+			worker.return_to_storage()
+		else:
+			worker.move_to(saved.get("destination",worker.position))
+
+func town_center_destroyed(tc:Node2D)->void:
+	if not is_instance_valid(tc):return
+	if workers_recalled:
+		release_sheltered_workers(tc)
+		workers_recalled=false
+	if is_instance_valid(recall_workers_button):
+		recall_workers_button.visible=false
+		recall_workers_button.text="Recall Workers"
+
 func clear_selection() -> void:
 	close_motivation_center_window()
 	for u in selected:
@@ -440,6 +529,7 @@ func clear_selection() -> void:
 	if is_instance_valid(demolish_building_button):demolish_building_button.visible=false
 	if is_instance_valid(upgrade_town_center_button):upgrade_town_center_button.visible=false
 	if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=false
+	if is_instance_valid(recall_workers_button):recall_workers_button.visible=false
 
 func add_selection(u:Node2D) -> void:
 	if not selected.has(u):
@@ -627,6 +717,14 @@ func create_hud() -> void:
 	upgrade_building_button.z_index=100
 	upgrade_building_button.pressed.connect(upgrade_selected_building)
 	hud.add_child(upgrade_building_button)
+	recall_workers_button=Button.new()
+	recall_workers_button.text="Recall Workers"
+	recall_workers_button.custom_minimum_size=Vector2(220,44)
+	recall_workers_button.position=Vector2(8,250)
+	recall_workers_button.visible=false
+	recall_workers_button.z_index=100
+	recall_workers_button.pressed.connect(toggle_recall_workers)
+	hud.add_child(recall_workers_button)
 	var zoom_row:=HBoxContainer.new()
 	v.add_child(zoom_row)
 	var zoom_in:=Button.new()
