@@ -94,6 +94,7 @@ func clear_production_assignment()->void:
 	production_target_building=null
 
 func is_working_for_production(site:Node2D)->bool:
+	if storage_blocked_by_capacity:return false
 	if production_target_building!=site or not is_instance_valid(site):return false
 	var expected_type={"Lumber Mill":"wood","Mill":"food","Gold Mine":"gold","Quarry":"stone"}.get(site.building_type,"")
 	if expected_type=="":return false
