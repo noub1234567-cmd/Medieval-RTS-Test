@@ -41,7 +41,7 @@ func _ready()->void:
 
 func create_range_indicator()->void:
 	var points:=PackedVector2Array()
-	var indicator_range:=280.0 if building_type=="Watchtower" else attack_range
+	var indicator_range:=get_watchtower_range() if building_type=="Watchtower" else attack_range
 	for i in range(97):
 		var angle=TAU*float(i)/96.0
 		points.append(Vector2(cos(angle),sin(angle))*indicator_range)
@@ -61,10 +61,13 @@ func create_range_indicator()->void:
 	range_indicator.visible=false
 	add_child(range_indicator)
 
+func get_watchtower_range()->float:
+	return 400.0 if building_upgrade_level>=2 else 280.0
+
 func update_range_indicator_geometry()->void:
 	if not is_instance_valid(range_indicator) or not is_instance_valid(range_fill):return
 	var points:=PackedVector2Array()
-	var indicator_range:=280.0 if building_type=="Watchtower" else attack_range
+	var indicator_range:=get_watchtower_range() if building_type=="Watchtower" else attack_range
 	for i in range(97):
 		var angle=TAU*float(i)/96.0
 		points.append(Vector2(cos(angle),sin(angle))*indicator_range)
@@ -269,7 +272,7 @@ func _process(delta:float)->void:
 		if watchtower_alert_timer<=0.0 and parent!=null and parent.has_method("watchtower_alert"):
 			var detected:=0
 			for enemy_unit in parent.units:
-				if is_instance_valid(enemy_unit) and enemy_unit.team==1 and enemy_unit.health>0 and position.distance_to(enemy_unit.position)<=280.0:
+				if is_instance_valid(enemy_unit) and enemy_unit.team==1 and enemy_unit.health>0 and position.distance_to(enemy_unit.position)<=get_watchtower_range():
 					detected+=1
 			if detected>0:
 				parent.watchtower_alert(self,detected)
