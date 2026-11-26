@@ -255,14 +255,28 @@ func add_build_work(amount:float)->void:
 		shape.color.a=1.0 if is_complete else 0.55+0.4*(construction_progress/100.0)
 	update_construction_display()
 
+var watchtower_alert_timer:=0.0
+
 func _process(delta:float)->void:
 	if is_instance_valid(production_worker) and (production_worker.health<=0 or production_worker.production_target_building!=self):
 		production_worker=null
-	if not is_complete or building_type!="Guard Tower" or team!=0: return
-	attack_timer=max(0.0,attack_timer-delta)
-	if attack_timer>0.0: return
+	if not is_complete or team!=0:return
 	var parent=get_parent()
-	if not parent.has_method("enemy_count"): return
+	if building_type=="Watchtower":
+		watchtower_alert_timer=max(0.0,watchtower_alert_timer-delta)
+		if watchtower_alert_timer<=0.0 and parent!=null and parent.has_method("watchtower_alert"):
+			var detected:=0
+			for enemy_unit in parent.units:
+				if is_instance_valid(enemy_unit) and enemy_unit.team==1 and enemy_unit.health>0 and position.distance_to(enemy_unit.position)<=280.0:
+					detected+=1
+			if detected>0:
+					parent.watchtower_alert(self,detected)
+					watchtower_alert_timer=15.0
+		return
+	if building_type!="Guard Tower":return
+	attack_timer=max(0.0,attack_timer-delta)
+	if attack_timer>0.0:return
+	if not parent.has_method("enemy_count"):return
 	var target:Node2D=null
 	var nearest=attack_range
 	for u in parent.units:
