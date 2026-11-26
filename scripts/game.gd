@@ -1399,10 +1399,18 @@ func open_market_window()->void:
 	market_amount_spin.step=1
 	market_amount_spin.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	amount_row.add_child(market_amount_spin)
+	var subtract_10_button:=Button.new()
+	subtract_10_button.text="-10"
+	subtract_10_button.pressed.connect(func(): adjust_market_amount(-10))
+	amount_row.add_child(subtract_10_button)
 	var add_10_button:=Button.new()
 	add_10_button.text="+10"
 	add_10_button.pressed.connect(func(): adjust_market_amount(10))
 	amount_row.add_child(add_10_button)
+	var subtract_100_button:=Button.new()
+	subtract_100_button.text="-100"
+	subtract_100_button.pressed.connect(func(): adjust_market_amount(-100))
+	amount_row.add_child(subtract_100_button)
 	var add_100_button:=Button.new()
 	add_100_button.text="+100"
 	add_100_button.pressed.connect(func(): adjust_market_amount(100))
