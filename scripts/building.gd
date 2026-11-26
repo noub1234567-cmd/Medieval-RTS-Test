@@ -270,8 +270,8 @@ func _process(delta:float)->void:
 				if is_instance_valid(enemy_unit) and enemy_unit.team==1 and enemy_unit.health>0 and position.distance_to(enemy_unit.position)<=280.0:
 					detected+=1
 			if detected>0:
-					parent.watchtower_alert(self,detected)
-					watchtower_alert_timer=15.0
+				parent.watchtower_alert(self,detected)
+				watchtower_alert_timer=15.0
 		return
 	if building_type!="Guard Tower":return
 	attack_timer=max(0.0,attack_timer-delta)
