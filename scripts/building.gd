@@ -29,7 +29,7 @@ var upgrade_workers:Array[Node2D]=[]
 var production_worker:Node2D=null
 
 func _ready()->void:
-	if building_type=="Guard Tower" and team==0:
+	if building_type in ["Guard Tower","Watchtower"] and team==0:
 		create_range_indicator()
 	health_bar=Polygon2D.new()
 	health_bar.position=Vector2(0,-36)
@@ -41,9 +41,10 @@ func _ready()->void:
 
 func create_range_indicator()->void:
 	var points:=PackedVector2Array()
+	var indicator_range:=280.0 if building_type=="Watchtower" else attack_range
 	for i in range(97):
 		var angle=TAU*float(i)/96.0
-		points.append(Vector2(cos(angle),sin(angle))*attack_range)
+		points.append(Vector2(cos(angle),sin(angle))*indicator_range)
 	range_fill=Polygon2D.new()
 	range_fill.name="TowerRangeFill"
 	range_fill.polygon=points
@@ -63,14 +64,15 @@ func create_range_indicator()->void:
 func update_range_indicator_geometry()->void:
 	if not is_instance_valid(range_indicator) or not is_instance_valid(range_fill):return
 	var points:=PackedVector2Array()
+	var indicator_range:=280.0 if building_type=="Watchtower" else attack_range
 	for i in range(97):
 		var angle=TAU*float(i)/96.0
-		points.append(Vector2(cos(angle),sin(angle))*attack_range)
+		points.append(Vector2(cos(angle),sin(angle))*indicator_range)
 	range_indicator.points=points
 	range_fill.polygon=points
 
 func set_range_visible(value:bool)->void:
-	var show_range:=value and is_complete and building_type=="Guard Tower" and team==0
+	var show_range:=value and is_complete and building_type in ["Guard Tower","Watchtower"] and team==0
 	if is_instance_valid(range_indicator):
 		range_indicator.visible=show_range
 	if is_instance_valid(range_fill):
