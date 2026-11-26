@@ -161,7 +161,7 @@ func return_to_storage()->void:
 	var parent=get_parent()
 	if parent==null:return
 	harvest_target_node=null
-	storage_target=parent.get_nearest_storage(position)
+	storage_target=parent.get_nearest_storage(position,carried_type)
 	storage_recheck_timer=0.0
 	storage_retry_timer=1.0
 	moving=storage_target!=null
@@ -265,7 +265,7 @@ func _process(delta:float)->void:
 			storage_recheck_timer=0.6
 			var parent_for_storage=get_parent()
 			if parent_for_storage!=null and parent_for_storage.has_method("get_nearest_storage"):
-				var closest_storage=parent_for_storage.get_nearest_storage(position)
+				var closest_storage=parent_for_storage.get_nearest_storage(position,carried_type)
 				if closest_storage!=storage_target:
 					storage_target=closest_storage
 					path_pending=false
