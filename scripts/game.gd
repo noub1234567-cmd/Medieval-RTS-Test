@@ -359,6 +359,7 @@ func touch_tap(pos:Vector2)->void:
 		if not selected.is_empty():
 			for worker in selected:
 				if is_instance_valid(worker) and worker.team==0:worker.harvest_target(resource_hit)
+			clear_selection_frame()
 			help_label.text="Workers assigned to gather %s" % resource_hit.resource_type
 		else:
 			clear_selection()
@@ -373,7 +374,9 @@ func touch_tap(pos:Vector2)->void:
 		var assigned:=false
 		for worker in selected:
 			if is_instance_valid(worker) and worker.team==0:worker.build_target(site);assigned=true
-		if assigned:help_label.text="Builders reassigned to construction!";return
+		if assigned:
+			clear_selection_frame()
+			help_label.text="Builders reassigned to construction!";return
 	if site!=null:
 		clear_selection();selected_building=site;create_selection_frame(site,Vector2(52,60))
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=true
