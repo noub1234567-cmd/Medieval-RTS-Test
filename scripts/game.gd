@@ -566,6 +566,21 @@ func is_screen_over_placement_controls(screen_pos:Vector2)->bool:
 func is_point_on_preview(pos:Vector2)->bool:
 	return is_instance_valid(building_ghost) and Rect2(building_ghost.position-Vector2(26,30),Vector2(52,60)).has_point(pos)
 
+func select_idle_workers()->void:
+	clear_selection()
+	for u in units:
+		if not is_instance_valid(u) or u.team!=0 or u.health<=0 or u.sheltered or u.shelter_pending:
+			continue
+		if u.moving or u.path_pending or u.carried_amount>0:
+			continue
+		if is_instance_valid(u.target) or is_instance_valid(u.harvest_target_node) or is_instance_valid(u.resume_harvest_node) or is_instance_valid(u.storage_target) or is_instance_valid(u.build_target_site) or is_instance_valid(u.upgrade_target_building) or is_instance_valid(u.production_target_building):
+			continue
+		if not u.route.is_empty():
+			continue
+		add_selection(u)
+	update_status()
+	help_label.text="Selected %d idle worker(s)" % selected.size()
+
 func add_selection(u:Node2D) -> void:
 	if not selected.has(u):
 		selected.append(u)
@@ -720,6 +735,11 @@ func create_hud() -> void:
 		building_rows[0 if i<3 else 1 if i<6 else 2 if i<9 else 3].add_child(b)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
+	var select_idle_button:=Button.new()
+	select_idle_button.text="Select Idle Workers"
+	select_idle_button.custom_minimum_size=Vector2(160,32)
+	select_idle_button.pressed.connect(select_idle_workers)
+	enemy_row.add_child(select_idle_button)
 	enemy_toggle_button=Button.new()
 	enemy_toggle_button.text="Enemy: ON"
 	enemy_toggle_button.custom_minimum_size=Vector2(110,32)
