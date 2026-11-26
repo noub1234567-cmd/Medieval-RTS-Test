@@ -231,7 +231,8 @@ func screen_to_world(p:Vector2) -> Vector2:
 
 func _input(event:InputEvent) -> void:
 	if market_window_open:
-	\treturn\n	if event is InputEventMouseButton:
+		return
+	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				drag_start=screen_to_world(event.position)
