@@ -26,7 +26,7 @@ var hud_collapsed := false
 var market_panel:PanelContainer
 var market_sell_option:OptionButton
 var market_buy_option:OptionButton
-var market_amount_spin:SpinBox
+var market_amount_line:LineEdit
 var market_preview_label:Label
 var market_window_open:=false
 const MARKET_PRICES:Dictionary={"food":1.0,"wood":1.0,"stone":1.5,"gold":2.0}
@@ -1392,16 +1392,13 @@ func open_market_window()->void:
 	var amount_label:=Label.new()
 	amount_label.text="Amount to sell (min 10):"
 	amount_row.add_child(amount_label)
-	market_amount_spin=SpinBox.new()
-	market_amount_spin.min_value=10
-	market_amount_spin.max_value=max(10,resources["food"])
-	market_amount_spin.value=10
-	market_amount_spin.step=1
-	var amount_line_edit:=market_amount_spin.get_line_edit()
-	amount_line_edit.virtual_keyboard_enabled=true
-	amount_line_edit.virtual_keyboard_type=LineEdit.KEYBOARD_TYPE_NUMBER
-	market_amount_spin.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	amount_row.add_child(market_amount_spin)
+	market_amount_line=LineEdit.new()
+	market_amount_line.text="10"
+	market_amount_line.placeholder_text="10"
+	market_amount_line.virtual_keyboard_enabled=true
+	market_amount_line.virtual_keyboard_type=LineEdit.KEYBOARD_TYPE_NUMBER
+	market_amount_line.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	amount_row.add_child(market_amount_line)
 	market_preview_label=Label.new()
 	market_preview_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(market_preview_label)
@@ -1419,7 +1416,7 @@ func open_market_window()->void:
 	action_row.add_child(close_button)
 	market_sell_option.item_selected.connect(update_market_preview)
 	market_buy_option.item_selected.connect(update_market_preview)
-	market_amount_spin.value_changed.connect(update_market_preview)
+	market_amount_line.text_changed.connect(update_market_preview)
 	update_market_preview(0)
 
 func close_market_window()->void:
@@ -1431,22 +1428,27 @@ func close_market_window()->void:
 func market_resource_name(index:int)->String:
 	return ["food","wood","stone","gold"][index]
 
-func update_market_preview(_value:float)->void:
+func update_market_preview(_value:String="")->void:
 	if not is_instance_valid(market_preview_label):return
 	var sell_type=market_resource_name(market_sell_option.selected)
 	var buy_type=market_resource_name(market_buy_option.selected)
-	var amount=int(market_amount_spin.value)
+	var amount=market_amount_line.text.to_int()
 	if sell_type==buy_type:
 		market_preview_label.text="Choose two different resources."
 		return
+	if amount<MARKET_MIN_AMOUNT:
+		market_preview_label.text="Minimum sale is 10 units."
+		return
+	if amount>int(resources.get(sell_type,0)):
+		market_preview_label.text="Not enough %s." % sell_type.capitalize()
+		return
 	var received=int(floor(float(amount)*MARKET_PRICES[sell_type]/MARKET_PRICES[buy_type]))
 	market_preview_label.text="You receive: %d %s\nOwned: %d %s" % [received,buy_type.capitalize(),resources[sell_type],sell_type.capitalize()]
-	market_amount_spin.max_value=max(10,int(resources[sell_type]))
 
 func execute_market_exchange()->void:
 	var sell_type=market_resource_name(market_sell_option.selected)
 	var buy_type=market_resource_name(market_buy_option.selected)
-	var amount=int(market_amount_spin.value)
+	var amount=market_amount_line.text.to_int()
 	if sell_type==buy_type:
 		market_preview_label.text="Choose two different resources."
 		return
