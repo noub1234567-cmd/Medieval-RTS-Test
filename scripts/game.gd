@@ -26,7 +26,7 @@ var touch_unit_start := false
 var touch_dragging_preview:=false
 var mobile_selection_mode:=false
 var mobile_selection_drag:=false
-var last_empty_tap_time:=0
+var last_empty_tap_time:int=0
 var last_empty_tap_position:=Vector2.ZERO
 var preview_initialized:=false
 var selected_frame:Node2D=null
@@ -333,13 +333,13 @@ func _input(event:InputEvent) -> void:
 			elif moved<=TOUCH_DRAG_THRESHOLD:
 				var release_pos=screen_to_world(event.position)
 				if is_empty_ground_at(release_pos):
-					var now=Time.get_ticks_msec()
-					if now-last_empty_tap_time<=450 and release_pos.distance_to(last_empty_tap_position)<=80.0:
+					var current_time_ms:int=Time.get_ticks_msec()
+					if current_time_ms-last_empty_tap_time<=450 and release_pos.distance_to(last_empty_tap_position)<=80.0:
 						mobile_selection_mode=true
 						last_empty_tap_time=0
 						help_label.text="Selection Mode — drag a rectangle to select workers"
 					else:
-						last_empty_tap_time=now;last_empty_tap_position=release_pos
+						last_empty_tap_time=current_time_ms;last_empty_tap_position=release_pos
 						touch_tap(release_pos)
 				else:
 					last_empty_tap_time=0;touch_tap(release_pos)
