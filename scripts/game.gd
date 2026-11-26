@@ -27,7 +27,7 @@ var hud_collapsed := false
 var hud: CanvasLayer
 var status_label: Label
 var help_label: Label
-var resources := {"wood": 300, "food": 250, "gold": 200, "stone": 0}
+var resources := {"wood": 500, "food": 500, "gold": 500, "stone": 500}
 var buildings: Array[Node2D] = []
 var building_upgrade_levels:Dictionary={}
 var placing_building := false
@@ -61,7 +61,7 @@ var enemy_attack_losses := 0
 var tree_positions: Array[Vector2] = []
 var resource_nodes: Array[Node2D] = []
 var storage_points: Array[Node2D] = []
-var storage_capacity := 2000
+var storage_capacity := 4000
 const ResourceNodeScript := preload("res://scripts/resource_node.gd")
 var building_cost := {"Farm": {"wood": 80, "gold": 30}, "House": {"wood": 100, "gold": 50}, "Barracks": {"wood": 150, "gold": 80}, "Guard Tower": {"wood": 120, "gold": 60}, "Wall": {"wood": 25, "gold": 5}, "Warehouse": {"wood": 180, "gold": 70}, "Lumber Mill": {"wood": 150, "gold": 50}, "Quarry": {"wood": 150, "gold": 50}, "Gold Mine": {"wood": 150, "gold": 50}, "Mill": {"wood": 150, "gold": 50}}
 
@@ -174,9 +174,12 @@ func get_nearest_resource_node(pos:Vector2,resource_type:String)->Node2D:
 	return nearest
 
 func deliver_resource(resource_type:String, quantity:int)->int:
-	var room=max(0,storage_capacity-resources.get(resource_type,0))
-	var delivered=min(room,quantity)
-	resources[resource_type]+=delivered
+	var total_resources:=0
+	for amount in resources.values():
+		total_resources+=int(amount)
+	var room=max(0,storage_capacity-total_resources)
+	var delivered=min(room,max(0,quantity))
+	resources[resource_type]=resources.get(resource_type,0)+delivered
 	update_status()
 	return delivered
 
@@ -1080,12 +1083,16 @@ func _process(delta:float) -> void:
 	if income_timer>=5.0:
 		income_timer=0.0
 		for b in buildings:
-			if b.is_complete and b.name=="Farm": resources.food+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="House": resources.gold+=3
-			elif b.is_complete and b.name=="Lumber Mill" and b.has_active_production_worker(): resources.wood+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="Quarry" and b.has_active_production_worker(): resources.stone+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="Gold Mine" and b.has_active_production_worker(): resources.gold+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="Mill" and b.has_active_production_worker(): resources.food+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
+			if b.is_complete and b.name=="Farm":
+				deliver_resource("food",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+			elif b.is_complete and b.name=="Lumber Mill" and b.has_active_production_worker():
+				deliver_resource("wood",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+			elif b.is_complete and b.name=="Quarry" and b.has_active_production_worker():
+				deliver_resource("stone",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+			elif b.is_complete and b.name=="Gold Mine" and b.has_active_production_worker():
+				deliver_resource("gold",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
+			elif b.is_complete and b.name=="Mill" and b.has_active_production_worker():
+				deliver_resource("food",int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0))))
 		update_status()
 	var motion:=Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): motion.x+=1
