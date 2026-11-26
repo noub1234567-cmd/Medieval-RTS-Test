@@ -360,7 +360,7 @@ func touch_tap(pos:Vector2)->void:
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
 		if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
-		if structure.building_type=="Guard Tower":structure.set_range_visible(true)
+		if structure.building_type in ["Guard Tower","Watchtower"]:structure.set_range_visible(true)
 		help_label.text="Building selected — demolish or upgrade (Town Center Level 2 unlocks upgrades)"
 		return
 	var unit=find_player_unit_at(pos)
