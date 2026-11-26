@@ -712,6 +712,11 @@ func create_hud() -> void:
 	recruit_worker_button.custom_minimum_size=Vector2(120,36)
 	recruit_worker_button.pressed.connect(start_worker_training)
 	buttons.add_child(recruit_worker_button)
+	var select_idle_button:=Button.new()
+	select_idle_button.text="Select Idle"
+	select_idle_button.custom_minimum_size=Vector2(110,36)
+	select_idle_button.pressed.connect(select_idle_workers)
+	buttons.add_child(select_idle_button)
 	var building_rows:Array[HBoxContainer]=[buttons]
 	var second_building_row:=HBoxContainer.new()
 	second_building_row.add_theme_constant_override("separation",3)
@@ -735,11 +740,7 @@ func create_hud() -> void:
 		building_rows[0 if i<3 else 1 if i<6 else 2 if i<9 else 3].add_child(b)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
-	var select_idle_button:=Button.new()
-	select_idle_button.text="Select Idle Workers"
-	select_idle_button.custom_minimum_size=Vector2(160,32)
-	select_idle_button.pressed.connect(select_idle_workers)
-	enemy_row.add_child(select_idle_button)
+
 	enemy_toggle_button=Button.new()
 	enemy_toggle_button.text="Enemy: ON"
 	enemy_toggle_button.custom_minimum_size=Vector2(110,32)
