@@ -1425,7 +1425,7 @@ func activate_motivation_effect()->void:
 	resources["gold"]=int(resources["gold"])-cost_gold
 	resources["food"]=int(resources["food"])-cost_food
 	motivation_time_remaining=MOTIVATION_DURATION_L2 if center.building_upgrade_level>=2 else MOTIVATION_DURATION_L1
-	motivation_production_multiplier=3.0 if center.building_upgrade_level>=2 else 2.0
+	motivation_production_multiplier=1.25 if center.building_upgrade_level>=2 else 1.15
 	update_status()
 	update_motivation_center_display()
 
@@ -1447,7 +1447,7 @@ func update_motivation_center_display()->void:
 		motivation_upgrade_button.visible=center.building_upgrade_level<2 and not center.is_upgrading and find_town_center_level()>=2
 	if motivation_time_remaining>0.0:
 		var seconds_left:=ceili(motivation_time_remaining)
-		motivation_status_label.text="ACTIVE — %02d:%02d remaining | +%d%% worker production" % [int(seconds_left/60),seconds_left%60,200 if center.building_upgrade_level>=2 else 100]
+		motivation_status_label.text="ACTIVE — %02d:%02d remaining | +%d%% worker production" % [int(seconds_left/60),seconds_left%60,25 if center.building_upgrade_level>=2 else 15]
 		motivation_activate_button.text="Active"
 		motivation_activate_button.disabled=true
 	else:
