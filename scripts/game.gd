@@ -257,6 +257,8 @@ func _input(event:InputEvent) -> void:
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				touch_start_screen=event.position
+				drag_start=screen_to_world(event.position)
+				drag_current=drag_start
 				touch_dragging_preview=placing_building and preview_initialized and is_point_on_preview(screen_to_world(event.position))
 				dragging=true
 				touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
@@ -341,10 +343,15 @@ func touch_tap(pos:Vector2)->void:
 			placement_cursor_world=pos;preview_initialized=true;update_building_ghost()
 		return
 	var resource_hit=find_resource_node_at(pos)
-	if resource_hit!=null and not selected.is_empty():
-		for worker in selected:
-			if is_instance_valid(worker) and worker.team==0:worker.harvest_target(resource_hit)
-		help_label.text="Workers assigned to gather %s" % resource_hit.resource_type
+	if resource_hit!=null:
+		if not selected.is_empty():
+			for worker in selected:
+				if is_instance_valid(worker) and worker.team==0:worker.harvest_target(resource_hit)
+			help_label.text="Workers assigned to gather %s" % resource_hit.resource_type
+		else:
+			clear_selection()
+			create_selection_frame(resource_hit,Vector2(38,34))
+			help_label.text="Resource selected — select workers to gather"
 		return
 	var upgrading_target=find_upgrading_building_at(pos)
 	if upgrading_target!=null and not selected.is_empty():
