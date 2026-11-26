@@ -73,6 +73,9 @@ var demolish_building_button: Button
 var upgrade_town_center_button: Button
 var upgrade_building_button: Button
 var recall_workers_button: Button
+var recruit_worker_button: Button
+var worker_training_remaining:=0.0
+const WORKER_TRAINING_TIME:=10.0
 var workers_recalled:=false
 var pause_toggle_button: Button
 var game_paused := false
@@ -675,6 +678,11 @@ func create_hud() -> void:
 	recruit.custom_minimum_size=Vector2(64,36)
 	recruit.pressed.connect(recruit_soldier)
 	buttons.add_child(recruit)
+	recruit_worker_button=Button.new()
+	recruit_worker_button.text="Worker (50 Food)"
+	recruit_worker_button.custom_minimum_size=Vector2(120,36)
+	recruit_worker_button.pressed.connect(start_worker_training)
+	buttons.add_child(recruit_worker_button)
 	var building_rows:Array[HBoxContainer]=[buttons]
 	var second_building_row:=HBoxContainer.new()
 	second_building_row.add_theme_constant_override("separation",3)
@@ -783,6 +791,57 @@ func make_panel_style() -> StyleBoxFlat:
 	s.content_margin_top=4
 	s.content_margin_bottom=4
 	return s
+
+func start_worker_training()->void:
+	if worker_training_remaining>0.0:
+		return
+	if population>=population_cap:
+		help_label.text="Population limit reached — build Houses"
+		return
+	if resources.food<50:
+		help_label.text="Worker recruitment costs 50 Food"
+		return
+	var tc:Node2D=null
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Town Center" and b.health>0:
+			tc=b
+			break
+	if tc==null:
+		help_label.text="Town Center unavailable"
+		return
+	resources.food-=50
+	worker_training_remaining=WORKER_TRAINING_TIME
+	if is_instance_valid(recruit_worker_button):
+		recruit_worker_button.disabled=true
+		recruit_worker_button.text="Training: 10s"
+	help_label.text="Worker training started (10 seconds)"
+	update_status()
+
+func complete_worker_training()->void:
+	var tc:Node2D=null
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Town Center" and b.health>0:
+			tc=b
+			break
+	if tc==null:
+		help_label.text="Worker training cancelled — Town Center destroyed"
+		worker_training_remaining=0.0
+		if is_instance_valid(recruit_worker_button):
+			recruit_worker_button.disabled=false
+			recruit_worker_button.text="Worker (50 Food)"
+		return
+	var worker:Node2D=UnitScene.instantiate()
+	add_child(worker)
+	worker.set_team(0)
+	worker.position=find_spawn_position(tc.position)
+	units.append(worker)
+	population+=1
+	worker_training_remaining=0.0
+	if is_instance_valid(recruit_worker_button):
+		recruit_worker_button.disabled=false
+		recruit_worker_button.text="Worker (50 Food)"
+	help_label.text="Worker recruited!"
+	update_status()
 
 func recruit_soldier() -> void:
 	var has_barracks:=false
@@ -1243,6 +1302,12 @@ func update_status() -> void:
 		status_label.text="Wood: %d  Food: %d  Gold: %d  Stone: %d\nPopulation: %d/%d  Selected: %d  Enemies: %d\nBuildings: %d  Enemy base: %d  Storage: %d" % [resources.wood,resources.food,resources.gold,resources.stone,population,population_cap,selected.size(),enemy_count(),buildings.size(),enemy_buildings.size(),storage_capacity]
 
 func _process(delta:float) -> void:
+	if worker_training_remaining>0.0:
+		worker_training_remaining=max(0.0,worker_training_remaining-delta)
+		if is_instance_valid(recruit_worker_button):
+			recruit_worker_button.text="Training: %ds" % ceili(worker_training_remaining)
+		if worker_training_remaining<=0.0:
+			complete_worker_training()
 	watchtower_alert_cooldown=max(0.0,watchtower_alert_cooldown-delta)
 	if motivation_time_remaining>0.0:
 		var center_exists:=false
