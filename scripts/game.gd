@@ -178,11 +178,10 @@ func reduce_resources_to_capacity()->void:
 	for amount in resources.values():
 		total_resources+=int(amount)
 	var excess=max(0,total_resources-storage_capacity)
+	var removal_per_resource=int(floor(float(excess)/4.0))
 	for resource_type in ["wood","food","gold","stone"]:
-		if excess<=0:break
-		var removed=min(excess,int(resources.get(resource_type,0)))
+		var removed=min(removal_per_resource,int(resources.get(resource_type,0)))
 		resources[resource_type]-=removed
-		excess-=removed
 
 func deliver_resource(resource_type:String, quantity:int)->int:
 	var total_resources:=0
