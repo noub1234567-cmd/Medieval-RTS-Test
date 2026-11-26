@@ -1355,9 +1355,9 @@ func open_market_window()->void:
 	market_window_open=true
 	market_panel=PanelContainer.new()
 	market_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	market_panel.position=Vector2(-210,-150)
-	market_panel.size=Vector2(420,300)
-	market_panel.custom_minimum_size=Vector2(420,300)
+	market_panel.position=Vector2(-210,-175)
+	market_panel.size=Vector2(420,350)
+	market_panel.custom_minimum_size=Vector2(420,350)
 	market_panel.z_index=200
 	market_panel.add_theme_stylebox_override("panel",make_panel_style())
 	hud.add_child(market_panel)
@@ -1424,7 +1424,7 @@ func open_market_window()->void:
 	market_preview_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(market_preview_label)
 	var market_upgrade_button:=Button.new()
-	market_upgrade_button.text="Upgrade Market (L2) — 120 Wood, 80 Gold, 60 Stone"
+	market_upgrade_button.text="Upgrade Market (L2) — 120W 80G 60S"
 	market_upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	market_upgrade_button.visible=market_level<2 and is_instance_valid(selected_building) and selected_building.is_complete and not selected_building.is_upgrading and find_town_center_level()>=2
 	market_upgrade_button.pressed.connect(upgrade_market_from_window)
