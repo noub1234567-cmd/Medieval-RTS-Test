@@ -986,6 +986,8 @@ func building_upgrade_completed(b:Node2D)->void:
 	building_upgrade_levels[b.building_type]=2
 	if b.building_type=="House":population_cap+=3
 	elif b.building_type=="Warehouse":storage_capacity+=1000
+	elif b.building_type=="Watchtower":
+		b.update_range_indicator_geometry()
 	elif b.building_type=="Guard Tower":
 		b.attack_range+=50.0
 		b.attack_damage+=10
