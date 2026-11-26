@@ -237,9 +237,9 @@ func screen_to_world(p:Vector2) -> Vector2:
 	return (p-camera_offset)/zoom_level
 
 func _input(event:InputEvent) -> void:
-	if is_instance_valid(motivation_panel) and event is InputEventMouseButton and motivation_panel.get_global_rect().has_point(event.position):
-		return
-	if is_instance_valid(motivation_panel) and (event is InputEventScreenTouch or event is InputEventScreenDrag) and motivation_panel.get_global_rect().has_point(event.position):
+	# Treat the Motivation Center as a modal window: prevent the game map from
+	# processing clicks/touches while its controls are open.
+	if is_instance_valid(motivation_panel):
 		return
 	if market_window_open:
 		return
