@@ -39,6 +39,8 @@ var ring:Line2D
 var health_bar:Polygon2D
 var death_notified:=false
 var sheltered:=false
+var shelter_pending:=false
+var shelter_tc:Node2D=null
 var shelter_saved_state:Dictionary={}
 
 func _ready()->void:
@@ -262,6 +264,20 @@ func update_health_bar()->void:
 
 func _process(delta:float)->void:
 	if sheltered:return
+	if shelter_pending:
+		if not is_instance_valid(shelter_tc) or shelter_tc.health<=0:
+			shelter_pending=false
+			shelter_tc=null
+		else:
+			if position.distance_to(shelter_tc.position)<=64.0:
+				shelter_pending=false
+				sheltered=true
+				visible=false
+				moving=false
+				path_pending=false
+				route=PackedVector2Array()
+				position=shelter_tc.position
+				return
 	# Retry storage assignment for any full worker whose storage target was lost.
 	if team==0 and carried_amount>=cargo_capacity and storage_target==null and not storage_blocked_by_capacity:
 		storage_retry_timer-=delta
