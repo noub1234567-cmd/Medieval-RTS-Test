@@ -449,16 +449,17 @@ func toggle_recall_workers()->void:
 
 func recall_workers_into_tc(tc:Node2D)->void:
 	for worker in units:
-		if not is_instance_valid(worker) or worker.team!=0 or worker.health<=0 or worker.sheltered:
+		if not is_instance_valid(worker) or worker.team!=0 or worker.health<=0 or worker.sheltered or worker.shelter_pending:
 			continue
+		var active_harvest=worker.harvest_target_node if is_instance_valid(worker.harvest_target_node) else worker.resume_harvest_node
 		var saved:Dictionary={
-			"harvest":worker.harvest_target_node,
-			"resume_harvest":worker.resume_harvest_node,
+			"harvest":active_harvest,
 			"build":worker.build_target_site,
 			"upgrade":worker.upgrade_target_building,
 			"target":worker.target,
 			"destination":worker.destination,
 			"moving":worker.moving,
+			"was_idle":worker.harvest_target_node==null and worker.storage_target==null and worker.build_target_site==null and worker.upgrade_target_building==null and worker.target==null and worker.carried_amount<=0 and not worker.moving,
 			"carried_amount":worker.carried_amount,
 			"carried_type":worker.carried_type
 		}
@@ -475,21 +476,26 @@ func recall_workers_into_tc(tc:Node2D)->void:
 		worker.moving=false
 		worker.path_pending=false
 		worker.route=PackedVector2Array()
-		worker.sheltered=true
-		worker.visible=false
-		worker.position=tc.position
+		worker.shelter_pending=true
+		worker.shelter_tc=tc
+		worker.visible=true
+		worker.destination=tc.position
+		worker.set_route(tc.position)
+		worker.moving=true
+
 
 func release_sheltered_workers(tc:Node2D)->void:
 	for worker in units:
-		if not is_instance_valid(worker) or worker.team!=0 or not worker.sheltered:
+		if not is_instance_valid(worker) or worker.team!=0 or (not worker.sheltered and not worker.shelter_pending):
 			continue
+		worker.shelter_pending=false
+		worker.shelter_tc=null
 		worker.sheltered=false
 		worker.visible=true
 		worker.position=tc.position+Vector2((worker.get_instance_id()%5)*8-16,24)
 		var saved=worker.shelter_saved_state
 		worker.shelter_saved_state={}
-		var cargo=int(saved.get("carried_amount",worker.carried_amount))
-		worker.carried_amount=cargo
+		worker.carried_amount=int(saved.get("carried_amount",worker.carried_amount))
 		worker.carried_type=str(saved.get("carried_type",worker.carried_type))
 		var harvest=saved.get("harvest")
 		var build=saved.get("build")
@@ -503,10 +509,17 @@ func release_sheltered_workers(tc:Node2D)->void:
 			worker.harvest_target(harvest)
 		elif is_instance_valid(old_target) and old_target.health>0:
 			worker.attack_target(old_target)
-		elif cargo>0:
+		elif int(saved.get("carried_amount",0))>0:
 			worker.return_to_storage()
+		elif bool(saved.get("moving",false)):
+			worker.destination=saved.get("destination",worker.position)
+			worker.moving=true
+			worker.set_route(worker.destination)
 		else:
-			worker.move_to(saved.get("destination",worker.position))
+			worker.destination=worker.position
+			worker.moving=false
+			worker.path_pending=false
+			worker.route=PackedVector2Array()
 
 func town_center_destroyed(tc:Node2D)->void:
 	if not is_instance_valid(tc):return
