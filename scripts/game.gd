@@ -23,6 +23,14 @@ var touch_start_screen := Vector2.ZERO
 var touch_pan := false
 var touch_unit_start := false
 var hud_collapsed := false
+var market_panel:PanelContainer
+var market_sell_option:OptionButton
+var market_buy_option:OptionButton
+var market_amount_spin:SpinBox
+var market_preview_label:Label
+var market_window_open:=false
+const MARKET_PRICES:Dictionary={"food":1.0,"wood":1.0,"stone":1.5,"gold":2.0}
+const MARKET_MIN_AMOUNT:=10
 
 var hud: CanvasLayer
 var status_label: Label
@@ -222,7 +230,7 @@ func screen_to_world(p:Vector2) -> Vector2:
 	return (p-camera_offset)/zoom_level
 
 func _input(event:InputEvent) -> void:
-	if event is InputEventMouseButton:
+	if market_window_open:\n\t\treturn\n	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				drag_start=screen_to_world(event.position)
@@ -356,7 +364,7 @@ func touch_tap(pos:Vector2)->void:
 		return
 	var structure=find_player_building_at(pos)
 	if structure!=null:
-		clear_selection()
+		if structure.building_type=="Market":\n\t\t\tclear_selection()\n\t\t\tselected_building=structure\n\t\t\topen_market_window()\n\t\t\treturn\n		clear_selection()
 		selected_building=structure
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
@@ -1335,3 +1343,120 @@ func is_unit_position_blocked(pos:Vector2, mover:Node2D, attack_target:Node2D=nu
 		if is_instance_valid(other) and other!=mover and other.health>0 and pos.distance_to(other.position)<12.0:
 			return true
 	return false
+func open_market_window()->void:
+	if market_window_open:return
+	market_window_open=true
+	market_panel=PanelContainer.new()
+	market_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	market_panel.position=Vector2(-210,-150)
+	market_panel.size=Vector2(420,300)
+	market_panel.custom_minimum_size=Vector2(420,300)
+	market_panel.z_index=200
+	market_panel.add_theme_stylebox_override("panel",make_panel_style())
+	hud.add_child(market_panel)
+	var v:=VBoxContainer.new()
+	v.add_theme_constant_override("separation",8)
+	market_panel.add_child(v)
+	var title:=Label.new()
+	title.text="MARKET — EXCHANGE"
+	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	var sell_row:=HBoxContainer.new()
+	v.add_child(sell_row)
+	var sell_label:=Label.new()
+	sell_label.text="Sell:"
+	sell_row.add_child(sell_label)
+	market_sell_option=OptionButton.new()
+	for resource in ["food","wood","stone","gold"]:
+		market_sell_option.add_item(resource.capitalize())
+	sell_row.add_child(market_sell_option)
+	var buy_row:=HBoxContainer.new()
+	v.add_child(buy_row)
+	var buy_label:=Label.new()
+	buy_label.text="Buy:"
+	buy_row.add_child(buy_label)
+	market_buy_option=OptionButton.new()
+	for resource in ["food","wood","stone","gold"]:
+		market_buy_option.add_item(resource.capitalize())
+	market_buy_option.select(1)
+	buy_row.add_child(market_buy_option)
+	var amount_row:=HBoxContainer.new()
+	v.add_child(amount_row)
+	var amount_label:=Label.new()
+	amount_label.text="Amount to sell (min 10):"
+	amount_row.add_child(amount_label)
+	market_amount_spin=SpinBox.new()
+	market_amount_spin.min_value=10
+	market_amount_spin.max_value=max(10,resources["food"])
+	market_amount_spin.value=10
+	market_amount_spin.step=1
+	market_amount_spin.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	amount_row.add_child(market_amount_spin)
+	market_preview_label=Label.new()
+	market_preview_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(market_preview_label)
+	var action_row:=HBoxContainer.new()
+	v.add_child(action_row)
+	var exchange_button:=Button.new()
+	exchange_button.text="Exchange"
+	exchange_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	exchange_button.pressed.connect(execute_market_exchange)
+	action_row.add_child(exchange_button)
+	var close_button:=Button.new()
+	close_button.text="Close"
+	close_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	close_button.pressed.connect(close_market_window)
+	action_row.add_child(close_button)
+	market_sell_option.item_selected.connect(update_market_preview)
+	market_buy_option.item_selected.connect(update_market_preview)
+	market_amount_spin.value_changed.connect(update_market_preview)
+	update_market_preview(0)
+
+func close_market_window()->void:
+	market_window_open=false
+	if is_instance_valid(market_panel):
+		market_panel.queue_free()
+	market_panel=null
+
+func market_resource_name(index:int)->String:
+	return ["food","wood","stone","gold"][index]
+
+func update_market_preview(_value:float)->void:
+	if not is_instance_valid(market_preview_label):return
+	var sell_type=market_resource_name(market_sell_option.selected)
+	var buy_type=market_resource_name(market_buy_option.selected)
+	var amount=int(market_amount_spin.value)
+	if sell_type==buy_type:
+		market_preview_label.text="Choose two different resources."
+		return
+	var received=int(floor(float(amount)*MARKET_PRICES[sell_type]/MARKET_PRICES[buy_type]))
+	market_preview_label.text="You receive: %d %s\nOwned: %d %s" % [received,buy_type.capitalize(),resources[sell_type],sell_type.capitalize()]
+	market_amount_spin.max_value=max(10,int(resources[sell_type]))
+
+func execute_market_exchange()->void:
+	var sell_type=market_resource_name(market_sell_option.selected)
+	var buy_type=market_resource_name(market_buy_option.selected)
+	var amount=int(market_amount_spin.value)
+	if sell_type==buy_type:
+		market_preview_label.text="Choose two different resources."
+		return
+	if amount<MARKET_MIN_AMOUNT:
+		market_preview_label.text="Minimum sale is 10 units."
+		return
+	if amount>int(resources.get(sell_type,0)):
+		market_preview_label.text="Not enough %s." % sell_type.capitalize()
+		return
+	var received=int(floor(float(amount)*MARKET_PRICES[sell_type]/MARKET_PRICES[buy_type]))
+	if received<1:
+		market_preview_label.text="Exchange amount is too small."
+		return
+	var total=int(resources.food)+int(resources.wood)+int(resources.gold)+int(resources.stone)
+	if total-amount+received>storage_capacity:
+		market_preview_label.text="Storage limit would be exceeded."
+		return
+	resources[sell_type]-=amount
+	resources[buy_type]+=received
+	update_status()
+	update_market_preview(0)
+	market_preview_label.text="Exchange successful: %d %s for %d %s." % [amount,sell_type.capitalize(),received,buy_type.capitalize()]
+
