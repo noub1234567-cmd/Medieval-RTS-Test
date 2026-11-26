@@ -1211,7 +1211,7 @@ func begin_enemy_attack() -> void:
 	for u in units:
 		if is_instance_valid(u) and u.team==1 and u.health>0:
 			squad.append(u)
-	var required:=min(3+enemy_attack_level,6)
+	var required:int = min(3+enemy_attack_level,6)
 	if squad.size()<required: return
 	enemy_attack_group=squad
 	enemy_attack_active=true
