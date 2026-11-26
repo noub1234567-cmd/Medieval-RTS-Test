@@ -1428,7 +1428,7 @@ func close_market_window()->void:
 func market_resource_name(index:int)->String:
 	return ["food","wood","stone","gold"][index]
 
-func update_market_preview(_value:String="")->void:
+func update_market_preview(_value:Variant=0)->void:
 	if not is_instance_valid(market_preview_label):return
 	var sell_type=market_resource_name(market_sell_option.selected)
 	var buy_type=market_resource_name(market_buy_option.selected)
