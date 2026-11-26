@@ -38,6 +38,8 @@ var body:Polygon2D
 var ring:Line2D
 var health_bar:Polygon2D
 var death_notified:=false
+var sheltered:=false
+var shelter_saved_state:Dictionary={}
 
 func _ready()->void:
 	destination=position
@@ -230,6 +232,7 @@ func attack_target(enemy:Node2D)->void:
 	moving=false
 
 func acquire_player_target()->void:
+	if sheltered:return
 	var parent=get_parent()
 	if not parent.has_method("enemy_count"):return
 	var closest:Node2D=null
@@ -241,7 +244,7 @@ func acquire_player_target()->void:
 	if closest!=null:attack_target(closest)
 
 func take_damage(amount:int)->void:
-	if health<=0:return
+	if sheltered or health<=0:return
 	health=max(0,health-amount)
 	update_health_bar()
 	if health<=0 and not death_notified:
@@ -258,6 +261,7 @@ func update_health_bar()->void:
 	health_bar.color=Color(0.2,0.9,0.25) if ratio>0.5 else Color(1,0.65,0.1) if ratio>0.25 else Color(0.95,0.2,0.15)
 
 func _process(delta:float)->void:
+	if sheltered:return
 	# Retry storage assignment for any full worker whose storage target was lost.
 	if team==0 and carried_amount>=cargo_capacity and storage_target==null and not storage_blocked_by_capacity:
 		storage_retry_timer-=delta
