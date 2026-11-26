@@ -1397,6 +1397,9 @@ func open_market_window()->void:
 	market_amount_spin.max_value=max(10,resources["food"])
 	market_amount_spin.value=10
 	market_amount_spin.step=1
+	var amount_line_edit:=market_amount_spin.get_line_edit()
+	amount_line_edit.virtual_keyboard_enabled=true
+	amount_line_edit.virtual_keyboard_type=LineEdit.KEYBOARD_TYPE_NUMBER
 	market_amount_spin.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	amount_row.add_child(market_amount_spin)
 	market_preview_label=Label.new()
