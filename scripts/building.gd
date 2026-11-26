@@ -302,4 +302,9 @@ func _process(delta:float)->void:
 func take_damage(amount:int)->void:
 	health=max(0,health-amount)
 	update_health_bar()
-	if health<=0: queue_free()
+	if health<=0:
+		if team==0 and building_type=="Town Center":
+			var parent=get_parent()
+			if parent!=null and parent.has_method("town_center_destroyed"):
+				parent.town_center_destroyed(self)
+		queue_free()
