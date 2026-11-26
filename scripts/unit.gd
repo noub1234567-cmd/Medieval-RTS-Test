@@ -325,8 +325,8 @@ func _process(delta:float)->void:
 					harvest_timer=0.0
 					var gather_amount:=10
 					var parent_for_production=get_parent()
-					if is_instance_valid(production_target_building) and parent_for_production!=null and parent_for_production.has_method("get_worker_production_amount"):
-						gather_amount=parent_for_production.get_worker_production_amount(production_target_building)
+					if parent_for_production!=null and parent_for_production.has_method("get_motivation_gather_amount"):
+						gather_amount=parent_for_production.get_motivation_gather_amount(gather_amount)
 					var amount=harvest_target_node.harvest(min(gather_amount,cargo_capacity-carried_amount))
 					carried_amount+=amount
 					carried_type=harvest_target_node.resource_type
