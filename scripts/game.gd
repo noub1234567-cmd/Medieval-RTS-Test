@@ -32,6 +32,7 @@ var market_window_open:=false
 var motivation_panel:PanelContainer
 var motivation_status_label:Label
 var motivation_activate_button:Button
+var motivation_upgrade_button:Button
 var motivation_time_remaining:=0.0
 const MOTIVATION_DURATION_L1:=180.0
 const MOTIVATION_DURATION_L2:=240.0
@@ -934,6 +935,7 @@ func demolish_selected_building()->void:
 		storage_points.erase(structure)
 		reduce_resources_to_capacity()
 	buildings.erase(structure)
+	if structure.building_type=="Motivation Center":close_motivation_center_window()
 	construction_sites.erase(structure)
 	if is_instance_valid(structure):structure.queue_free()
 	selected_building=null
@@ -1426,7 +1428,10 @@ func update_motivation_center_display()->void:
 	if center==null:
 		motivation_status_label.text="Motivation Center unavailable."
 		motivation_activate_button.disabled=true
+		if is_instance_valid(motivation_upgrade_button):motivation_upgrade_button.visible=false
 		return
+	if is_instance_valid(motivation_upgrade_button):
+		motivation_upgrade_button.visible=center.building_upgrade_level<2 and not center.is_upgrading and find_town_center_level()>=2
 	if motivation_time_remaining>0.0:
 		var seconds_left:=ceili(motivation_time_remaining)
 		motivation_status_label.text="ACTIVE — %02d:%02d remaining | +%d%% worker production" % [int(seconds_left/60),seconds_left%60,25 if center.building_upgrade_level>=2 else 15]
@@ -1465,16 +1470,14 @@ func open_motivation_center_window()->void:
 	motivation_activate_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	motivation_activate_button.pressed.connect(activate_motivation_effect)
 	v.add_child(motivation_activate_button)
-	var upgrade_button:=Button.new()
-	upgrade_button.text="Upgrade to Level 2 — 120 Wood, 80 Gold, 60 Stone"
-	upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	var center:=get_motivation_center()
-	upgrade_button.visible=center!=null and center.building_upgrade_level<2 and not center.is_upgrading and find_town_center_level()>=2
-	upgrade_button.pressed.connect(func():
+	motivation_upgrade_button=Button.new()
+	motivation_upgrade_button.text="Upgrade to Level 2 — 120 Wood, 80 Gold, 60 Stone"
+	motivation_upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	motivation_upgrade_button.pressed.connect(func():
 		close_motivation_center_window()
 		upgrade_selected_building()
 	)
-	v.add_child(upgrade_button)
+	v.add_child(motivation_upgrade_button)
 	var demolish_button:=Button.new()
 	demolish_button.text="Demolish (15%)"
 	demolish_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
@@ -1496,6 +1499,7 @@ func close_motivation_center_window()->void:
 	motivation_panel=null
 	motivation_status_label=null
 	motivation_activate_button=null
+	motivation_upgrade_button=null
 
 func open_market_window()->void:
 	if market_window_open:return
