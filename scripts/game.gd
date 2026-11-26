@@ -531,8 +531,11 @@ func town_center_destroyed(tc:Node2D)->void:
 func clear_selection() -> void:
 	close_motivation_center_window()
 	clear_selection_frame()
-	for u in selected:
-		u.set_selected(false)
+	# Force-hide selection rings for every player worker, not only the selected list.
+	# This prevents stale visual selection if the list and unit state become desynchronized.
+	for u in units:
+		if is_instance_valid(u) and u.team==0 and u.has_method("set_selected"):
+			u.set_selected(false)
 	selected.clear()
 	if is_instance_valid(selected_building):
 		selected_building.set_range_visible(false)
