@@ -31,6 +31,7 @@ var storage_recheck_timer:=0.0
 var storage_retry_timer:=0.0
 var build_target_site:Node2D=null
 var upgrade_target_building:Node2D=null
+var production_target_building:Node2D=null
 var target:Node2D=null
 var body:Polygon2D
 var ring:Line2D
@@ -86,7 +87,29 @@ func execute_pending_path()->void:
 		route=PackedVector2Array([pending_path_destination])
 	route_index=0
 
+func clear_production_assignment()->void:
+	if is_instance_valid(production_target_building):
+		production_target_building.unregister_production_worker(self)
+	production_target_building=null
+
+func assign_to_production(site:Node2D)->bool:
+	if team!=0 or site==null or not is_instance_valid(site) or not site.is_complete or not site.is_production_building():return false
+	clear_production_assignment()
+	if not site.register_production_worker(self):return false
+	target=null
+	harvest_target_node=null
+	storage_target=null
+	build_target_site=null
+	upgrade_target_building=null
+	resume_harvest_node=null
+	production_target_building=site
+	moving=true
+	destination=get_building_approach_point(site)
+	set_route(destination)
+	return true
+
 func move_to(p:Vector2)->void:
+	clear_production_assignment()
 	var parent=get_parent()
 	if parent!=null and parent.has_method("snap_to_map_cell"):
 		p=parent.snap_to_map_cell(p)
@@ -102,6 +125,7 @@ func move_to(p:Vector2)->void:
 	set_route(p)
 
 func harvest_target(node:Node2D)->void:
+	clear_production_assignment()
 	if node==null or not is_instance_valid(node) or team!=0:return
 	target=null
 	storage_target=null
@@ -164,6 +188,7 @@ func get_building_approach_point(site:Node2D)->Vector2:
 	return site.position+away*52.0
 
 func build_target(site:Node2D)->void:
+	clear_production_assignment()
 	if team!=0 or site==null or not is_instance_valid(site) or site.is_complete:return
 	target=null
 	harvest_target_node=null
@@ -176,6 +201,7 @@ func build_target(site:Node2D)->void:
 	set_route(destination)
 
 func upgrade_target(site:Node2D)->bool:
+	clear_production_assignment()
 	if team!=0 or site==null or not is_instance_valid(site) or not site.is_upgrading:return false
 	if upgrade_target_building!=null and is_instance_valid(upgrade_target_building):
 		upgrade_target_building.unregister_upgrade_worker(self)
@@ -195,6 +221,7 @@ func upgrade_target(site:Node2D)->bool:
 	return true
 
 func attack_target(enemy:Node2D)->void:
+	clear_production_assignment()
 	harvest_target_node=null
 	storage_target=null
 	build_target_site=null
@@ -300,6 +327,20 @@ func _process(delta:float)->void:
 					carried_amount+=amount
 					carried_type=harvest_target_node.resource_type
 					if carried_amount>=cargo_capacity or harvest_target_node.amount<=0:return_to_storage()
+	if production_target_building!=null:
+		if not is_instance_valid(production_target_building) or not production_target_building.is_complete or production_target_building.health<=0:
+			if is_instance_valid(production_target_building):production_target_building.unregister_production_worker(self)
+			production_target_building=null
+			moving=false
+		elif position.distance_to(production_target_building.position)<=58.0:
+			moving=false
+			path_pending=false
+			route=PackedVector2Array()
+			route_index=0
+		else:
+			moving=true
+			destination=get_building_approach_point(production_target_building)
+			if route.is_empty() or route[route.size()-1].distance_to(destination)>8.0:set_route(destination)
 	if upgrade_target_building!=null:
 		if not is_instance_valid(upgrade_target_building) or not upgrade_target_building.is_upgrading:
 			if is_instance_valid(upgrade_target_building):
