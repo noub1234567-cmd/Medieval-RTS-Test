@@ -1205,6 +1205,7 @@ func upgrade_selected_building()->void:
 	for key in cost:resources[key]-=cost[key]
 	b.begin_building_upgrade()
 	worker.upgrade_target(b)
+	clear_selection()
 	if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=false
 	help_label.text="Building upgrade started — Level 2"
 	update_status()
