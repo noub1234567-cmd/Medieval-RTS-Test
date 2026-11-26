@@ -388,22 +388,28 @@ func add_selection(u:Node2D) -> void:
 		selected.append(u)
 		u.set_selected(true)
 
+func assign_worker_to_resource_production(worker:Node2D,resource_type:String)->void:
+	if not is_instance_valid(worker) or worker.team!=0:return
+	var building_type={"wood":"Lumber Mill","food":"Mill","gold":"Gold Mine","stone":"Quarry"}.get(resource_type,"")
+	if building_type=="":
+		worker.clear_production_assignment()
+		return
+	if is_instance_valid(worker.production_target_building) and worker.production_target_building.building_type==building_type:
+		return
+	worker.clear_production_assignment()
+	var nearest:Node2D=null
+	var best_distance:=INF
+	for building in buildings:
+		if is_instance_valid(building) and building.team==0 and building.is_complete and building.building_type==building_type and not is_instance_valid(building.production_worker):
+			var distance=worker.position.distance_to(building.position)
+			if distance<best_distance:
+				best_distance=distance
+				nearest=building
+	if nearest!=null and nearest.register_production_worker(worker):
+		worker.production_target_building=nearest
+
 func attack_or_move(target_pos:Vector2) -> void:
 	if selected.is_empty(): return
-	var production_building:Node2D=null
-	var production_distance:=58.0
-	for building in buildings:
-		if is_instance_valid(building) and building.team==0 and building.is_complete and building.is_production_building():
-			var building_distance=building.position.distance_to(target_pos)
-			if building_distance<production_distance:
-				production_distance=building_distance
-				production_building=building
-	if production_building!=null:
-		var assigned_count:=0
-		for worker in selected:
-			if is_instance_valid(worker) and worker.team==0 and worker.assign_to_production(production_building):assigned_count+=1
-		help_label.text="Worker assigned to production" if assigned_count==1 else "Workers assigned: %d" % assigned_count if assigned_count>1 else "This production building already has a worker"
-		return
 	var resource_node:Node2D=null
 	var resource_distance:=55.0
 	for node in resource_nodes:
