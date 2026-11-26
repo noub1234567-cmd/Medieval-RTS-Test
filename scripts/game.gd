@@ -137,23 +137,32 @@ func create_player_storage() -> void:
 	buildings.append(depot)
 	storage_points.append(depot)
 
-func get_nearest_storage(pos:Vector2)->Node2D:
-	var nearest:Node2D=null
-	var best_distance:=INF
+func get_nearest_storage(pos:Vector2,resource_type:String="")->Node2D:
+	var specialized_type={"wood":"Lumber Mill","food":"Mill","gold":"Gold Mine","stone":"Quarry"}.get(resource_type,"")
+	var nearest_specialized:Node2D=null
+	var best_specialized_distance:=INF
+	if specialized_type!="":
+		for building in buildings:
+			if not is_instance_valid(building) or building.health<=0 or building.team!=0 or not building.is_complete:
+				continue
+			if building.building_type!=specialized_type:
+				continue
+			var distance:=pos.distance_to(building.position)
+			if distance<best_specialized_distance:
+				best_specialized_distance=distance
+				nearest_specialized=building
+	if nearest_specialized!=null:
+		return nearest_specialized
+	var town_center:Node2D=null
+	var best_town_center_distance:=INF
 	for building in buildings:
-		if not is_instance_valid(building) or building.health<=0 or building.team!=0:
-			continue
-		if building.building_type=="Town Center":
-			pass
-		elif building.building_type=="Warehouse" and building.is_complete:
-			pass
-		else:
+		if not is_instance_valid(building) or building.health<=0 or building.team!=0 or building.building_type!="Town Center":
 			continue
 		var distance:=pos.distance_to(building.position)
-		if distance<best_distance:
-			best_distance=distance
-			nearest=building
-	return nearest
+		if distance<best_town_center_distance:
+			best_town_center_distance=distance
+			town_center=building
+	return town_center
 
 func get_nearest_resource_node(pos:Vector2,resource_type:String)->Node2D:
 	var nearest:Node2D=null
