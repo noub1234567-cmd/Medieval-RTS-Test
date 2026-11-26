@@ -1064,6 +1064,7 @@ func assign_selected_workers_to_upgrade(structure:Node2D)->void:
 		if worker.upgrade_target(structure):
 			assigned+=1
 	if assigned>0:
+		clear_selection()
 		help_label.text="Added %d worker(s) to upgrade — %d/8 workers" % [assigned,structure.get_upgrade_worker_count()]
 	elif rejected>0:
 		help_label.text="Upgrade worker limit reached (8)"
