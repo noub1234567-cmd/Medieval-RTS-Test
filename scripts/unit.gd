@@ -323,7 +323,11 @@ func _process(delta:float)->void:
 				if carried_amount>=cargo_capacity:return_to_storage()
 				elif harvest_timer>=1.5:
 					harvest_timer=0.0
-					var amount=harvest_target_node.harvest(min(10,cargo_capacity-carried_amount))
+					var gather_amount:=10
+					var parent_for_production=get_parent()
+					if is_instance_valid(production_target_building) and parent_for_production!=null and parent_for_production.has_method("get_worker_production_amount"):
+						gather_amount=parent_for_production.get_worker_production_amount(production_target_building)
+					var amount=harvest_target_node.harvest(min(gather_amount,cargo_capacity-carried_amount))
 					carried_amount+=amount
 					carried_type=harvest_target_node.resource_type
 					if carried_amount>=cargo_capacity or harvest_target_node.amount<=0:return_to_storage()
