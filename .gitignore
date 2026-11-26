@@ -1,0 +1,10 @@
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg.tmp
+*.translation
+
+# IDE
+.vscode/
+.idea/

@@ -2,8 +2,6 @@ name: Build and Deploy Test Game
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [game-source-updated]
   push:
     branches: [main]
 
@@ -20,11 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout game source
+      - name: Checkout test game source
         uses: actions/checkout@v4
-        with:
-          repository: noub1234567-cmd/Medieval-RTS-Mobile
-          ref: building-upgrades
       - name: Install Godot 4.3 and export templates
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip -O godot.zip
