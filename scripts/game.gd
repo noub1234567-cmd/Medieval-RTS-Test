@@ -367,10 +367,11 @@ func touch_tap(pos:Vector2)->void:
 	var structure=find_player_building_at(pos)
 	if structure!=null:
 		if structure.building_type=="Market":
-	\t\tclear_selection()
-	\t\tselected_building=structure
-	\t\topen_market_window()
-	\t\treturn\n		clear_selection()
+			clear_selection()
+			selected_building=structure
+			open_market_window()
+			return
+		clear_selection()
 		selected_building=structure
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
