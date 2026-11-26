@@ -24,6 +24,10 @@ var touch_start_screen := Vector2.ZERO
 var touch_pan := false
 var touch_unit_start := false
 var touch_dragging_preview:=false
+var mobile_selection_mode:=false
+var mobile_selection_drag:=false
+var last_empty_tap_time:=0
+var last_empty_tap_position:=Vector2.ZERO
 var preview_initialized:=false
 var selected_frame:Node2D=null
 var preview_confirm_button:Button=null
@@ -309,7 +313,13 @@ func _input(event:InputEvent) -> void:
 			touch_start_screen=event.position
 			touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
 			touch_dragging_preview=placing_building and preview_initialized and is_point_on_preview(screen_to_world(event.position))
-			dragging=true
+			mobile_selection_drag=mobile_selection_mode and not placing_building and not is_touch_on_any_unit_or_structure(screen_to_world(event.position))
+			if mobile_selection_drag:
+				drag_start=screen_to_world(event.position);drag_current=drag_start
+				get_node("SelectionOverlay").clear_rect()
+				dragging=true
+			else:
+				dragging=true
 		elif dragging:
 			var moved=event.position.distance_to(touch_start_screen)
 			if placing_building:
@@ -317,16 +327,38 @@ func _input(event:InputEvent) -> void:
 					placement_cursor_world=screen_to_world(event.position);preview_initialized=true;update_building_ghost()
 				elif touch_dragging_preview and moved>TOUCH_DRAG_THRESHOLD:
 					placement_cursor_world=screen_to_world(event.position);update_building_ghost()
+			elif mobile_selection_drag:
+					if moved>TOUCH_DRAG_THRESHOLD:finish_selection(screen_to_world(event.position))
+				mobile_selection_mode=false;mobile_selection_drag=false
 			elif moved<=TOUCH_DRAG_THRESHOLD:
-				touch_tap(screen_to_world(event.position))
+				var release_pos=screen_to_world(event.position)
+				if is_empty_ground_at(release_pos):
+					var now=Time.get_ticks_msec()
+					if now-last_empty_tap_time<=450 and release_pos.distance_to(last_empty_tap_position)<=80.0:
+						mobile_selection_mode=true
+						last_empty_tap_time=0
+						help_label.text="Selection Mode — drag a rectangle to select workers"
+					else:
+						last_empty_tap_time=now;last_empty_tap_position=release_pos
+						touch_tap(release_pos)
+				else:
+					last_empty_tap_time=0;touch_tap(release_pos)
 			dragging=false;touch_dragging_preview=false
 			get_node("SelectionOverlay").clear_rect();update_status()
 	elif event is InputEventScreenDrag and dragging:
 		var moved=event.position.distance_to(touch_start_screen)
 		if placing_building and touch_dragging_preview:
 			placement_cursor_world=screen_to_world(event.position);update_building_ghost()
-		elif not placing_building and moved>TOUCH_DRAG_THRESHOLD and not touch_unit_start:
+		elif mobile_selection_drag and moved>TOUCH_DRAG_THRESHOLD:
+			drag_current=screen_to_world(event.position);overlay_update()
+		elif not mobile_selection_mode and not placing_building and moved>TOUCH_DRAG_THRESHOLD and not touch_unit_start:
 			camera_offset+=event.relative;touch_pan=true;update_view()
+
+func is_touch_on_any_unit_or_structure(pos:Vector2)->bool:
+	return find_player_unit_at(pos)!=null or find_town_center_at(pos)!=null or find_player_building_at(pos)!=null or find_resource_node_at(pos)!=null or find_unfinished_building_at(pos)!=null
+
+func is_empty_ground_at(pos:Vector2)->bool:
+	return not is_touch_on_any_unit_or_structure(pos) and find_upgrading_building_at(pos)==null
 
 func find_player_unit_at(pos:Vector2)->Node2D:
 	for unit in units:
