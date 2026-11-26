@@ -39,6 +39,7 @@ var construction_sites: Array[Node2D] = []
 var population := 8
 var population_cap := 8
 var income_timer := 0.0
+var watchtower_alert_cooldown := 0.0
 var enemy_resources := {"wood": 240, "food": 220, "gold": 180}
 var enemy_buildings: Array[Node2D] = []
 var enemy_population := 4
@@ -1003,8 +1004,11 @@ func building_upgrade_completed(b:Node2D)->void:
 	update_status()
 
 func watchtower_alert(tower:Node2D, enemy_count_detected:int)->void:
+	if watchtower_alert_cooldown>0.0:
+		return
+	watchtower_alert_cooldown=15.0
 	if is_instance_valid(help_label):
-		help_label.text="WARNING: %d enemy unit(s) detected near Watchtower!" % enemy_count_detected
+		help_label.text="WARNING: %d enemy unit(s) detected!" % enemy_count_detected
 
 func building_completed(b:Node2D)->void:
 	construction_sites.erase(b)
@@ -1074,6 +1078,7 @@ func update_status() -> void:
 		status_label.text="Wood: %d  Food: %d  Gold: %d  Stone: %d\nPopulation: %d/%d  Selected: %d  Enemies: %d\nBuildings: %d  Enemy base: %d  Storage: %d" % [resources.wood,resources.food,resources.gold,resources.stone,population,population_cap,selected.size(),enemy_count(),buildings.size(),enemy_buildings.size(),storage_capacity]
 
 func _process(delta:float) -> void:
+	watchtower_alert_cooldown=max(0.0,watchtower_alert_cooldown-delta)
 	if placing_building and is_instance_valid(building_ghost): update_building_ghost()
 	if enemy_attack_active:
 		monitor_enemy_attack()
