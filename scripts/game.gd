@@ -390,6 +390,20 @@ func add_selection(u:Node2D) -> void:
 
 func attack_or_move(target_pos:Vector2) -> void:
 	if selected.is_empty(): return
+	var production_building:Node2D=null
+	var production_distance:=58.0
+	for building in buildings:
+		if is_instance_valid(building) and building.team==0 and building.is_complete and building.is_production_building():
+			var building_distance=building.position.distance_to(target_pos)
+			if building_distance<production_distance:
+				production_distance=building_distance
+				production_building=building
+	if production_building!=null:
+		var assigned_count:=0
+		for worker in selected:
+			if is_instance_valid(worker) and worker.team==0 and worker.assign_to_production(production_building):assigned_count+=1
+		help_label.text="Worker assigned to production" if assigned_count==1 else "Workers assigned: %d" % assigned_count if assigned_count>1 else "This production building already has a worker"
+		return
 	var resource_node:Node2D=null
 	var resource_distance:=55.0
 	for node in resource_nodes:
@@ -1053,10 +1067,10 @@ func _process(delta:float) -> void:
 		for b in buildings:
 			if b.is_complete and b.name=="Farm": resources.food+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
 			elif b.is_complete and b.name=="House": resources.gold+=3
-			elif b.is_complete and b.name=="Lumber Mill": resources.wood+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="Quarry": resources.stone+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="Gold Mine": resources.gold+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
-			elif b.is_complete and b.name=="Mill": resources.food+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
+			elif b.is_complete and b.name=="Lumber Mill" and b.has_active_production_worker(): resources.wood+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
+			elif b.is_complete and b.name=="Quarry" and b.has_active_production_worker(): resources.stone+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
+			elif b.is_complete and b.name=="Gold Mine" and b.has_active_production_worker(): resources.gold+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
+			elif b.is_complete and b.name=="Mill" and b.has_active_production_worker(): resources.food+=int(round(10.0*(1.3 if b.building_upgrade_level>=2 else 1.0)))
 		update_status()
 	var motion:=Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): motion.x+=1
