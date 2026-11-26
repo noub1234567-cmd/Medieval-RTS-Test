@@ -1399,6 +1399,14 @@ func open_market_window()->void:
 	market_amount_spin.step=1
 	market_amount_spin.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 	amount_row.add_child(market_amount_spin)
+	var add_10_button:=Button.new()
+	add_10_button.text="+10"
+	add_10_button.pressed.connect(func(): adjust_market_amount(10))
+	amount_row.add_child(add_10_button)
+	var add_100_button:=Button.new()
+	add_100_button.text="+100"
+	add_100_button.pressed.connect(func(): adjust_market_amount(100))
+	amount_row.add_child(add_100_button)
 	market_preview_label=Label.new()
 	market_preview_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(market_preview_label)
@@ -1427,6 +1435,13 @@ func close_market_window()->void:
 
 func market_resource_name(index:int)->String:
 	return ["food","wood","stone","gold"][index]
+
+func adjust_market_amount(delta:int)->void:
+	if not is_instance_valid(market_amount_spin):return
+	var sell_type=market_resource_name(market_sell_option.selected)
+	market_amount_spin.max_value=max(10,int(resources[sell_type]))
+	market_amount_spin.value=clamp(market_amount_spin.value+delta,10,market_amount_spin.max_value)
+	update_market_preview(0)
 
 func update_market_preview(_value:float)->void:
 	if not is_instance_valid(market_preview_label):return
