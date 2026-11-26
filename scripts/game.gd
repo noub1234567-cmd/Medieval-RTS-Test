@@ -34,6 +34,7 @@ var motivation_status_label:Label
 var motivation_activate_button:Button
 var motivation_upgrade_button:Button
 var motivation_time_remaining:=0.0
+var motivation_production_multiplier:=1.0
 const MOTIVATION_DURATION_L1:=180.0
 const MOTIVATION_DURATION_L2:=240.0
 const MARKET_PRICES:Dictionary={"food":1.0,"wood":1.0,"stone":1.5,"gold":2.0}
@@ -1398,9 +1399,8 @@ func get_motivation_center()->Node2D:
 
 func get_worker_production_amount(building:Node2D)->int:
 	var amount:=10.0*(1.3 if building.building_upgrade_level>=2 else 1.0)
-	var center:=get_motivation_center()
-	if motivation_time_remaining>0.0 and center!=null:
-		amount*=1.25 if center.building_upgrade_level>=2 else 1.15
+	if motivation_time_remaining>0.0:
+		amount*=motivation_production_multiplier
 	return int(round(amount))
 
 func activate_motivation_effect()->void:
@@ -1420,11 +1420,13 @@ func activate_motivation_effect()->void:
 	resources["gold"]=int(resources["gold"])-cost_gold
 	resources["food"]=int(resources["food"])-cost_food
 	motivation_time_remaining=MOTIVATION_DURATION_L2 if center.building_upgrade_level>=2 else MOTIVATION_DURATION_L1
+	motivation_production_multiplier=1.25 if center.building_upgrade_level>=2 else 1.15
 	update_status()
 	update_motivation_center_display()
 
 func stop_motivation_effect()->void:
 	motivation_time_remaining=0.0
+	motivation_production_multiplier=1.0
 	update_motivation_center_display()
 
 func update_motivation_center_display()->void:
