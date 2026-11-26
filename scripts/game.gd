@@ -1397,6 +1397,11 @@ func get_motivation_center()->Node2D:
 			return building
 	return null
 
+func get_motivation_gather_amount(base_amount:int)->int:
+	if motivation_time_remaining<=0.0:
+		return base_amount
+	return int(round(float(base_amount)*motivation_production_multiplier))
+
 func get_worker_production_amount(building:Node2D)->int:
 	var amount:=10.0*(1.3 if building.building_upgrade_level>=2 else 1.0)
 	if motivation_time_remaining>0.0:
