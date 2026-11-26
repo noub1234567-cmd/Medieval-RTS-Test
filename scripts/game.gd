@@ -230,7 +230,8 @@ func screen_to_world(p:Vector2) -> Vector2:
 	return (p-camera_offset)/zoom_level
 
 func _input(event:InputEvent) -> void:
-	if market_window_open:\n\t\treturn\n	if event is InputEventMouseButton:
+	if market_window_open:
+	\treturn\n	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				drag_start=screen_to_world(event.position)
@@ -364,7 +365,11 @@ func touch_tap(pos:Vector2)->void:
 		return
 	var structure=find_player_building_at(pos)
 	if structure!=null:
-		if structure.building_type=="Market":\n\t\t\tclear_selection()\n\t\t\tselected_building=structure\n\t\t\topen_market_window()\n\t\t\treturn\n		clear_selection()
+		if structure.building_type=="Market":
+	\t\tclear_selection()
+	\t\tselected_building=structure
+	\t\topen_market_window()
+	\t\treturn\n		clear_selection()
 		selected_building=structure
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
