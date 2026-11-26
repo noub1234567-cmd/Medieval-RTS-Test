@@ -1365,9 +1365,14 @@ func open_market_window()->void:
 	v.add_theme_constant_override("separation",8)
 	market_panel.add_child(v)
 	var title:=Label.new()
-	title.text="MARKET — EXCHANGE"
+	var market_level=selected_building.building_upgrade_level if is_instance_valid(selected_building) else 1
+	title.text="MARKET — LEVEL %d" % market_level
 	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(title)
+	var market_info:=Label.new()
+	market_info.text="Level 2 bonus: +20% when buying Gold or Stone." if market_level>=2 else "Standard exchange rates."
+	market_info.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(market_info)
 	var sell_row:=HBoxContainer.new()
 	v.add_child(sell_row)
 	var sell_label:=Label.new()
@@ -1418,6 +1423,12 @@ func open_market_window()->void:
 	market_preview_label=Label.new()
 	market_preview_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(market_preview_label)
+	var market_upgrade_button:=Button.new()
+	market_upgrade_button.text="Upgrade Market (L2) — 120 Wood, 80 Gold, 60 Stone"
+	market_upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	market_upgrade_button.visible=market_level<2 and is_instance_valid(selected_building) and selected_building.is_complete and not selected_building.is_upgrading and find_town_center_level()>=2
+	market_upgrade_button.pressed.connect(upgrade_market_from_window)
+	v.add_child(market_upgrade_button)
 	var action_row:=HBoxContainer.new()
 	v.add_child(action_row)
 	var exchange_button:=Button.new()
@@ -1435,6 +1446,10 @@ func open_market_window()->void:
 	market_amount_spin.value_changed.connect(update_market_preview)
 	update_market_preview(0)
 
+func upgrade_market_from_window()->void:
+	close_market_window()
+	upgrade_selected_building()
+
 func close_market_window()->void:
 	market_window_open=false
 	if is_instance_valid(market_panel):
@@ -1451,6 +1466,12 @@ func adjust_market_amount(delta:int)->void:
 	market_amount_spin.value=clamp(market_amount_spin.value+delta,10,market_amount_spin.max_value)
 	update_market_preview(0)
 
+func market_received_amount(sell_type:String,buy_type:String,amount:int)->int:
+	var received=float(amount)*MARKET_PRICES[sell_type]/MARKET_PRICES[buy_type]
+	if is_instance_valid(selected_building) and selected_building.building_type=="Market" and selected_building.building_upgrade_level>=2 and buy_type in ["gold","stone"]:
+		received*=1.2
+	return int(floor(received))
+
 func update_market_preview(_value:float)->void:
 	if not is_instance_valid(market_preview_label):return
 	var sell_type=market_resource_name(market_sell_option.selected)
@@ -1459,7 +1480,7 @@ func update_market_preview(_value:float)->void:
 	if sell_type==buy_type:
 		market_preview_label.text="Choose two different resources."
 		return
-	var received=int(floor(float(amount)*MARKET_PRICES[sell_type]/MARKET_PRICES[buy_type]))
+	var received=market_received_amount(sell_type,buy_type,amount)
 	market_preview_label.text="You receive: %d %s\nOwned: %d %s" % [received,buy_type.capitalize(),resources[sell_type],sell_type.capitalize()]
 	market_amount_spin.max_value=max(10,int(resources[sell_type]))
 
@@ -1476,7 +1497,7 @@ func execute_market_exchange()->void:
 	if amount>int(resources.get(sell_type,0)):
 		market_preview_label.text="Not enough %s." % sell_type.capitalize()
 		return
-	var received=int(floor(float(amount)*MARKET_PRICES[sell_type]/MARKET_PRICES[buy_type]))
+	var received=market_received_amount(sell_type,buy_type,amount)
 	if received<1:
 		market_preview_label.text="Exchange amount is too small."
 		return
