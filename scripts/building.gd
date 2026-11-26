@@ -26,6 +26,7 @@ var upgrade_label:Label
 var upgrade_bar_bg:Polygon2D
 var upgrade_bar_fill:Polygon2D
 var upgrade_workers:Array[Node2D]=[]
+var production_worker:Node2D=null
 
 func _ready()->void:
 	if building_type=="Guard Tower" and team==0:
@@ -109,6 +110,21 @@ func update_health_bar()->void:
 	var ratio=float(health)/float(max_health)
 	health_bar.polygon=PackedVector2Array([Vector2(-18,-2),Vector2(-18+36*ratio,-2),Vector2(-18+36*ratio,2),Vector2(-18,2)])
 	health_bar.color=Color(0.2,0.9,0.25) if ratio>0.5 else Color(1,0.65,0.1) if ratio>0.25 else Color(0.95,0.2,0.15)
+
+func is_production_building()->bool:
+	return building_type in ["Mill","Lumber Mill","Gold Mine","Quarry"]
+
+func register_production_worker(worker:Node2D)->bool:
+	if not is_production_building() or not is_complete or team!=0 or not is_instance_valid(worker):return false
+	if is_instance_valid(production_worker) and production_worker!=worker:return false
+	production_worker=worker
+	return true
+
+func unregister_production_worker(worker:Node2D)->void:
+	if production_worker==worker:production_worker=null
+
+func has_active_production_worker()->bool:
+	return is_production_building() and is_complete and team==0 and is_instance_valid(production_worker) and production_worker.health>0 and production_worker.production_target_building==self
 
 func begin_upgrade()->void:
 	if building_type!="Town Center" or town_center_level>=2:return
@@ -240,6 +256,8 @@ func add_build_work(amount:float)->void:
 	update_construction_display()
 
 func _process(delta:float)->void:
+	if is_instance_valid(production_worker) and (production_worker.health<=0 or production_worker.production_target_building!=self):
+		production_worker=null
 	if not is_complete or building_type!="Guard Tower" or team!=0: return
 	attack_timer=max(0.0,attack_timer-delta)
 	if attack_timer>0.0: return
