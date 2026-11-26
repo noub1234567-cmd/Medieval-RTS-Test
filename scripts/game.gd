@@ -1002,7 +1002,11 @@ func building_upgrade_completed(b:Node2D)->void:
 		b.update_health_bar()
 	update_status()
 
-func watchtower_alert(tower:Node2D, enemy_count_detected:int)->void:\n\tif is_instance_valid(help_label):\n\t\thelp_label.text="WARNING: %d enemy unit(s) detected near Watchtower!" % enemy_count_detected\n\nfunc building_completed(b:Node2D)->void:
+func watchtower_alert(tower:Node2D, enemy_count_detected:int)->void:
+	if is_instance_valid(help_label):
+		help_label.text="WARNING: %d enemy unit(s) detected near Watchtower!" % enemy_count_detected
+
+func building_completed(b:Node2D)->void:
 	construction_sites.erase(b)
 	if b.team==0:
 		var name_label:Label=b.get_node_or_null("BuildingNameLabel")
