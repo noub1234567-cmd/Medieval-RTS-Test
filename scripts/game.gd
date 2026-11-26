@@ -1017,8 +1017,6 @@ func place_building(pos:Vector2) -> void:
 	structure.add_child(label)
 	add_child(structure)
 	buildings.append(structure)
-	if structure.team==0 and structure.building_type=="House":
-		population_cap+=5
 	construction_sites.append(structure)
 	assign_builder_to_site(structure)
 	placing_building=false
@@ -1237,6 +1235,8 @@ func watchtower_alert(tower:Node2D, enemy_count_detected:int)->void:
 func building_completed(b:Node2D)->void:
 	construction_sites.erase(b)
 	if b.team==0:
+		if b.building_type=="House" and b.building_upgrade_level<2:
+			population_cap+=5
 		var name_label:Label=b.get_node_or_null("BuildingNameLabel")
 		if is_instance_valid(name_label):
 			name_label.text=b.building_type + (" Level 2" if b.building_upgrade_level>=2 else "")
