@@ -1401,18 +1401,20 @@ func get_worker_production_amount(building:Node2D)->int:
 
 func activate_motivation_effect()->void:
 	var center:=get_motivation_center()
-	if center==null or not is_instance_valid(selected_building) or selected_building!=center:
+	if center==null or center!=selected_building:
+		if is_instance_valid(motivation_status_label):
+			motivation_status_label.text="Select the Motivation Center to activate."
 		return
 	if motivation_time_remaining>0.0:
 		return
-	var cost_gold:=900 if center.building_upgrade_level>=2 else 500
-	var cost_food:=1000 if center.building_upgrade_level>=2 else 800
-	if int(resources.gold)<cost_gold or int(resources.food)<cost_food:
+	var cost_gold:int=900 if center.building_upgrade_level>=2 else 500
+	var cost_food:int=1000 if center.building_upgrade_level>=2 else 800
+	if resources["gold"]<cost_gold or resources["food"]<cost_food:
 		if is_instance_valid(motivation_status_label):
 			motivation_status_label.text="Not enough resources: need %d Gold and %d Food." % [cost_gold,cost_food]
 		return
-	resources.gold-=cost_gold
-	resources.food-=cost_food
+	resources["gold"]=int(resources["gold"])-cost_gold
+	resources["food"]=int(resources["food"])-cost_food
 	motivation_time_remaining=MOTIVATION_DURATION_L2 if center.building_upgrade_level>=2 else MOTIVATION_DURATION_L1
 	update_status()
 	update_motivation_center_display()
