@@ -302,7 +302,10 @@ func _input(event:InputEvent) -> void:
 	elif event is InputEventScreenTouch:
 		if event.pressed:
 			ignore_emulated_mouse_for_touch=true
-			if (event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position):return
+			if (event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position):
+				touch_start_screen=event.position
+				dragging=false
+				return
 			touch_start_screen=event.position
 			touch_unit_start=find_player_unit_at(screen_to_world(event.position))!=null
 			touch_dragging_preview=placing_building and preview_initialized and is_point_on_preview(screen_to_world(event.position))
