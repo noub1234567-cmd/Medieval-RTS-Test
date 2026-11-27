@@ -561,7 +561,7 @@ func separate_from_units(parent:Node,delta:float)->void:
 	var total:=Vector2.ZERO
 	for other in all_units:
 		if not is_instance_valid(other) or other==self or other.health<=0 or other.sheltered:continue
-				var offset:Vector2=position-other.position
+		var offset:Vector2=position-other.position
 		var dist:=offset.length()
 		if dist>=UNIT_SEPARATION:continue
 		var direction:Vector2
@@ -585,7 +585,7 @@ func get_free_destination(p:Vector2)->Vector2:
 			if list==null:continue
 			for structure in list:
 				if not is_instance_valid(structure) or structure.health<=0:continue
-								var offset:Vector2=p-structure.position
+				var offset:Vector2=p-structure.position
 				var dist:=offset.length()
 				if dist<BUILDING_COLLISION_RADIUS+4.0:
 					var normal:Vector2=offset/dist if dist>0.001 else Vector2(0,1)
@@ -594,7 +594,7 @@ func get_free_destination(p:Vector2)->Vector2:
 		var trees=parent.get("tree_positions")
 		if trees!=null:
 			for tree_pos in trees:
-								var offset:Vector2=p-tree_pos
+				var offset:Vector2=p-tree_pos
 				var dist:=offset.length()
 				if dist<TREE_COLLISION_RADIUS+4.0:
 					var normal:Vector2=offset/dist if dist>0.001 else Vector2(0,1)
