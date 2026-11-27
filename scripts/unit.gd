@@ -197,6 +197,15 @@ func get_building_approach_point(site:Node2D)->Vector2:
 	for angle_index in range(16):
 		var angle:=TAU*float(angle_index)/16.0
 		var candidate:=site.position+Vector2(cos(angle),sin(angle))*52.0
+		# Reserve distinct approach slots for workers assigned to this same structure.
+		var slot_reserved:=false
+		for other in parent.units:
+			if not is_instance_valid(other) or other==self or other.health<=0:continue
+			if other.build_target_site!=site and other.upgrade_target_building!=site:continue
+			if other.destination.distance_to(candidate)<18.0:
+				slot_reserved=true
+				break
+		if slot_reserved:continue
 		if parent.is_unit_position_blocked(candidate,self,site):continue
 		var candidate_route:PackedVector2Array=parent.find_path(position,candidate,self)
 		if candidate_route.is_empty():continue
