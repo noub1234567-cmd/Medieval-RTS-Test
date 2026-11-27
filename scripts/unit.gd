@@ -439,14 +439,13 @@ func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
 	var move_direction=direction.normalized()
 	if steer.length()>0.01:
 		move_direction=(move_direction+steer*0.35).normalized()
+	# Track progress for every movement path, including steering-adjusted movement.
+	var distance_before_move=position.distance_to(waypoint)
 	var step=move_direction*min(speed*delta,direction.length())
 	var candidate=position+step
 	if not parent.has_method("is_unit_position_blocked") or not parent.is_unit_position_blocked(candidate,self,target_override):
 		position=candidate
-		stuck_timer=0.0
 	else:
-		# Measure real progress toward the current waypoint, not just any movement.
-		var distance_before_move=position.distance_to(waypoint)
 		# Slide along static obstacles by testing each axis separately.
 		var slide_x=position+Vector2(step.x,0)
 		var slide_y=position+Vector2(0,step.y)
@@ -466,11 +465,11 @@ func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
 				if not parent.is_unit_position_blocked(side_candidate,self,target_override):
 					position=side_candidate
 					break
-		# Sideways movement only counts if it actually gets closer to the waypoint.
-		if position.distance_to(waypoint)<distance_before_move-0.5:
+	# Reset only when the worker makes measurable progress toward the waypoint.
+	if position.distance_to(waypoint)<distance_before_move-0.5:
+		stuck_timer=0.0
+	else:
+		stuck_timer+=delta
+		if stuck_timer>=0.75:
+			set_route(destination)
 			stuck_timer=0.0
-		else:
-			stuck_timer+=delta
-			if stuck_timer>=0.75:
-				set_route(destination)
-				stuck_timer=0.0
