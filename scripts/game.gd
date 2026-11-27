@@ -649,9 +649,18 @@ func attack_or_move(target_pos:Vector2) -> void:
 		for soldier in selected: soldier.attack_target(enemy)
 		help_label.text="Attack order issued!"
 	else:
+		# Give every selected unit a separate, wider destination slot on the isometric grid.
+		var columns:=int(ceil(sqrt(float(selected.size()))))
+		var rows:=int(ceil(float(selected.size())/float(columns)))
+		var center_cell:=world_to_grid(target_pos)
 		for i in range(selected.size()):
-			var offset:=Vector2((i%3)*20-20,(i/3)*18)
-			selected[i].move_to(target_pos+offset)
+			var column:=i%columns
+			var row:=int(i/columns)
+			var cell_offset:=Vector2i(column*2-(columns-1),row*2-(rows-1))
+			var slot_cell:=center_cell+cell_offset
+			slot_cell.x=clampi(slot_cell.x,0,GRID.x-1)
+			slot_cell.y=clampi(slot_cell.y,0,GRID.y-1)
+			selected[i].move_to(grid_to_screen(slot_cell))
 		help_label.text="Move order issued."
 
 func update_view() -> void:
