@@ -186,7 +186,41 @@ func return_to_storage()->void:
 
 func get_building_approach_point(site:Node2D)->Vector2:
 	if site==null or not is_instance_valid(site):return position
-	var away=(position-site.position).normalized()
+	var parent:=get_parent()
+	if parent==null or not parent.has_method("find_path") or not parent.has_method("is_unit_position_blocked"):
+		var fallback_away:Vector2=(position-site.position).normalized()
+		if fallback_away.length()<0.1:fallback_away=Vector2(1,0)
+		return site.position+fallback_away*52.0
+	# Test several approach points around the structure and keep the shortest clear route.
+	var best_point:=Vector2.ZERO
+	var best_route_length:=INF
+	for angle_index in range(16):
+		var angle:=TAU*float(angle_index)/16.0
+		var candidate:=site.position+Vector2(cos(angle),sin(angle))*52.0
+		if parent.is_unit_position_blocked(candidate,self,site):continue
+		var candidate_route:PackedVector2Array=parent.find_path(position,candidate,self)
+		if candidate_route.is_empty():continue
+		var previous:=position
+		var route_clear:=true
+		var route_length:=0.0
+		for waypoint in candidate_route:
+			var segment_length:=previous.distance_to(waypoint)
+			route_length+=segment_length
+			var sample_count:=max(1,int(ceil(segment_length/8.0)))
+			for sample_index in range(1,sample_count+1):
+				var sample_pos:=previous.lerp(waypoint,float(sample_index)/float(sample_count))
+				if parent.is_unit_position_blocked(sample_pos,self,site):
+					route_clear=false
+					break
+			if not route_clear:break
+			previous=waypoint
+		if route_clear and route_length<best_route_length:
+			best_route_length=route_length
+			best_point=candidate
+	if best_route_length<INF:
+		return best_point
+	# Preserve the previous behavior if every candidate is temporarily blocked.
+	var away:Vector2=(position-site.position).normalized()
 	if away.length()<0.1:away=Vector2(1,0)
 	return site.position+away*52.0
 
