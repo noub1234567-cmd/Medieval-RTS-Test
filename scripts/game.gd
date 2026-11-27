@@ -649,14 +649,18 @@ func attack_or_move(target_pos:Vector2) -> void:
 		for soldier in selected: soldier.attack_target(enemy)
 		help_label.text="Attack order issued!"
 	else:
-		# Assign randomized, obstacle-aware arrival positions around the order point.
-		var arrival_slots:=find_random_formation_positions(world_to_grid(target_pos),selected.size())
-		for i in range(selected.size()):
-			if i<arrival_slots.size():
-				selected[i].move_to(arrival_slots[i])
-			else:
-				# Safe fallback when the nearby area has too few free cells.
-				selected[i].move_to(snap_to_map_cell(target_pos))
+		if selected.size()==1:
+			# A single unit should move to the exact point the player clicked.
+			selected[0].move_to(target_pos,false)
+		else:
+			# Assign randomized, obstacle-aware arrival positions around the order point.
+			var arrival_slots:=find_random_formation_positions(world_to_grid(target_pos),selected.size())
+			for i in range(selected.size()):
+				if i<arrival_slots.size():
+					selected[i].move_to(arrival_slots[i])
+				else:
+					# Safe fallback when the nearby area has too few free cells.
+					selected[i].move_to(snap_to_map_cell(target_pos))
 		help_label.text="Move order issued."
 
 func find_random_formation_positions(center_cell:Vector2i,unit_count:int)->Array[Vector2]:
