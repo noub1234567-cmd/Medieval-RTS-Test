@@ -649,22 +649,42 @@ func attack_or_move(target_pos:Vector2) -> void:
 		for soldier in selected: soldier.attack_target(enemy)
 		help_label.text="Attack order issued!"
 	else:
-		# Keep separate arrival slots while tightening the formation on the grid.
-		var columns:=int(ceil(sqrt(float(selected.size()))))
-		var rows:=int(ceil(float(selected.size())/float(columns)))
-		var center_cell:=world_to_grid(target_pos)
+		# Assign randomized, obstacle-aware arrival positions around the order point.
+		var arrival_slots:=find_random_formation_positions(world_to_grid(target_pos),selected.size())
 		for i in range(selected.size()):
-			var column:=i%columns
-			var row:=int(i/columns)
-			# Alternate one-cell and two-cell gaps to reduce the average spacing.
-			var column_offset:=column+int(column/2)
-			var row_offset:=row+int(row/2)
-			var cell_offset:=Vector2i(column_offset-int((columns-1)/2),row_offset-int((rows-1)/2))
-			var slot_cell:=center_cell+cell_offset
-			slot_cell.x=clampi(slot_cell.x,0,GRID.x-1)
-			slot_cell.y=clampi(slot_cell.y,0,GRID.y-1)
-			selected[i].move_to(grid_to_screen(slot_cell))
+			if i<arrival_slots.size():
+				selected[i].move_to(arrival_slots[i])
+			else:
+				# Safe fallback when the nearby area has too few free cells.
+				selected[i].move_to(snap_to_map_cell(target_pos))
 		help_label.text="Move order issued."
+
+func find_random_formation_positions(center_cell:Vector2i,unit_count:int)->Array[Vector2]:
+	var chosen:Array[Vector2]=[]
+	# Expand the search area only when nearby terrain cannot fit the whole group.
+	for radius in [3,5,7,10]:
+		var candidates:Array[Vector2i]=[]
+		for x in range(-radius,radius+1):
+			for y in range(-radius,radius+1):
+				var cell:=center_cell+Vector2i(x,y)
+				if cell.x<0 or cell.y<0 or cell.x>=GRID.x or cell.y>=GRID.y:
+					continue
+				if not is_cell_blocked(cell,null):
+					candidates.append(cell)
+		candidates.shuffle()
+		chosen.clear()
+		for cell in candidates:
+			var candidate_pos:=grid_to_screen(cell)
+			var separated:=true
+			for existing_pos in chosen:
+				if candidate_pos.distance_to(existing_pos)<28.0:
+					separated=false
+					break
+			if separated:
+				chosen.append(candidate_pos)
+				if chosen.size()>=unit_count:
+					return chosen
+	return chosen
 
 func update_view() -> void:
 	position=camera_offset
