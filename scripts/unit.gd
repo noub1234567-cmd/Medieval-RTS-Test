@@ -105,10 +105,10 @@ func is_working_for_production(site:Node2D)->bool:
 	if is_instance_valid(harvest_target_node) and harvest_target_node.resource_type==expected_type:return true
 	return carried_amount>0 and carried_type==expected_type
 
-func move_to(p:Vector2)->void:
+func move_to(p:Vector2,snap_to_cell:bool=true)->void:
 	clear_production_assignment()
 	var parent=get_parent()
-	if parent!=null and parent.has_method("snap_to_map_cell"):
+	if snap_to_cell and parent!=null and parent.has_method("snap_to_map_cell"):
 		p=parent.snap_to_map_cell(p)
 	target=null
 	harvest_target_node=null
