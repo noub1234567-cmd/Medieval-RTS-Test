@@ -1599,11 +1599,6 @@ func find_path(start_pos:Vector2,end_pos:Vector2,mover:Node2D)->PackedVector2Arr
 			if next.x<min_x or next.x>max_x or next.y<min_y or next.y>max_y:continue
 			if closed.has(next):continue
 			if next!=finish and is_cell_blocked(next,mover):continue
-			# Do not cut diagonally across the corner of a building or tree.
-			if abs(delta.x)==1 and abs(delta.y)==1:
-				var side_x:=current+Vector2i(delta.x,0)
-				var side_y:=current+Vector2i(0,delta.y)
-				if is_cell_blocked(side_x,mover) or is_cell_blocked(side_y,mover):continue
 			var step=1.0 if abs(delta.x)+abs(delta.y)==1 else 1.4
 			var new_cost=costs[current]+step
 			if new_cost<costs.get(next,INF):
@@ -1611,7 +1606,7 @@ func find_path(start_pos:Vector2,end_pos:Vector2,mover:Node2D)->PackedVector2Arr
 				costs[next]=new_cost
 				scores[next]=new_cost+float(next.distance_to(finish))
 				if not open.has(next):open.append(next)
-	if not came_from.has(finish):return PackedVector2Array()
+	if not came_from.has(finish):return PackedVector2Array([end_pos])
 	var cells:Array[Vector2i]=[]
 	var cell=finish
 	while cell!=start:
