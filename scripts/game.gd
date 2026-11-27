@@ -95,6 +95,10 @@ const ResourceNodeScript := preload("res://scripts/resource_node.gd")
 var building_cost := {"Farm": {"wood": 80, "gold": 30}, "House": {"wood": 100, "gold": 50}, "Barracks": {"wood": 150, "gold": 80}, "Guard Tower": {"wood": 120, "gold": 60}, "Watchtower": {"wood": 100, "gold": 50}, "Wall": {"wood": 25, "gold": 5}, "Warehouse": {"wood": 180, "gold": 70}, "Lumber Mill": {"wood": 150, "gold": 50}, "Quarry": {"wood": 150, "gold": 50}, "Gold Mine": {"wood": 150, "gold": 50}, "Mill": {"wood": 150, "gold": 50}, "Market": {"wood": 120, "gold": 60}, "Motivation Center": {"wood": 150, "gold": 50}}
 
 func _ready() -> void:
+	var worker_debug_monitor := Node.new()
+	worker_debug_monitor.set_script(load("res://scripts/worker_debug_monitor.gd"))
+	worker_debug_monitor.name = "WorkerDebugMonitor"
+	add_child(worker_debug_monitor)
 	var overlay := OverlayScene.instantiate()
 	overlay.name = "SelectionOverlay"
 	add_child(overlay)
