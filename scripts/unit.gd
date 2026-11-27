@@ -91,10 +91,6 @@ func execute_pending_path()->void:
 	else:
 		route=PackedVector2Array([pending_path_destination])
 	route_index=0
-	if route.is_empty():
-		# Stop safely when no obstacle-free route exists; never walk directly into a blocker.
-		moving=false
-		stuck_timer=0.0
 
 func clear_production_assignment()->void:
 	if is_instance_valid(production_target_building):
