@@ -571,7 +571,7 @@ func select_idle_workers()->void:
 	for u in units:
 		if not is_instance_valid(u) or u.team!=0 or u.health<=0 or u.sheltered or u.shelter_pending:
 			continue
-		if u.moving or u.path_pending or u.carried_amount>0:
+		if u.moving or u.path_pending:
 			continue
 		if is_instance_valid(u.target) or is_instance_valid(u.harvest_target_node) or is_instance_valid(u.resume_harvest_node) or is_instance_valid(u.storage_target) or is_instance_valid(u.build_target_site) or is_instance_valid(u.upgrade_target_building) or is_instance_valid(u.production_target_building):
 			continue
