@@ -132,8 +132,8 @@ func _build_panel() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 	var hide_button := Button.new()
-	hide_button.text = "Hide"
-	hide_button.pressed.connect(func(): panel.visible = not panel.visible)
+	hide_button.text = "Clear"
+	hide_button.pressed.connect(func(): report_lines.clear(); report_label.text = "")
 	header.add_child(hide_button)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
