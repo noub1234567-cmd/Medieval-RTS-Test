@@ -112,6 +112,18 @@ func _report(message: String) -> void:
 		file.store_line(line)
 		file.close()
 
+func _copy_report() -> void:
+	if report_lines.is_empty():
+		DisplayServer.clipboard_set("Worker Debug log is empty.")
+	else:
+		DisplayServer.clipboard_set("\n".join(report_lines))
+	var copy_button := get_node_or_null("WorkerDebugLayer/WorkerDebugPanel/VBoxContainer/Header/CopyLog")
+	if is_instance_valid(copy_button):
+		copy_button.text = "Copied!"
+		await get_tree().create_timer(1.5).timeout
+		if is_instance_valid(copy_button):
+			copy_button.text = "Copy Log"
+
 func _build_panel() -> void:
 	var layer := CanvasLayer.new()
 	layer.name = "WorkerDebugLayer"
@@ -124,17 +136,24 @@ func _build_panel() -> void:
 	panel.size = Vector2(348, 230)
 	layer.add_child(panel)
 	var column := VBoxContainer.new()
+	column.name = "VBoxContainer"
 	panel.add_child(column)
 	var header := HBoxContainer.new()
+	header.name = "Header"
 	column.add_child(header)
 	var title := Label.new()
 	title.text = "WORKER DEBUG (passive)"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
-	var hide_button := Button.new()
-	hide_button.text = "Clear"
-	hide_button.pressed.connect(func(): report_lines.clear(); report_label.text = "")
-	header.add_child(hide_button)
+	var copy_button := Button.new()
+	copy_button.name = "CopyLog"
+	copy_button.text = "Copy Log"
+	copy_button.pressed.connect(_copy_report)
+	header.add_child(copy_button)
+	var clear_button := Button.new()
+	clear_button.text = "Clear"
+	clear_button.pressed.connect(func(): report_lines.clear(); report_label.text = "")
+	header.add_child(clear_button)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
