@@ -649,14 +649,17 @@ func attack_or_move(target_pos:Vector2) -> void:
 		for soldier in selected: soldier.attack_target(enemy)
 		help_label.text="Attack order issued!"
 	else:
-		# Give every selected unit a separate, wider destination slot on the isometric grid.
+		# Keep separate arrival slots while tightening the formation on the grid.
 		var columns:=int(ceil(sqrt(float(selected.size()))))
 		var rows:=int(ceil(float(selected.size())/float(columns)))
 		var center_cell:=world_to_grid(target_pos)
 		for i in range(selected.size()):
 			var column:=i%columns
 			var row:=int(i/columns)
-			var cell_offset:=Vector2i(column*2-(columns-1),row*2-(rows-1))
+			# Alternate one-cell and two-cell gaps to reduce the average spacing.
+			var column_offset:=column+int(column/2)
+			var row_offset:=row+int(row/2)
+			var cell_offset:=Vector2i(column_offset-int((columns-1)/2),row_offset-int((rows-1)/2))
 			var slot_cell:=center_cell+cell_offset
 			slot_cell.x=clampi(slot_cell.x,0,GRID.x-1)
 			slot_cell.y=clampi(slot_cell.y,0,GRID.y-1)
