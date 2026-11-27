@@ -202,7 +202,7 @@ func get_building_approach_point(site:Node2D)->Vector2:
 		for other in parent.units:
 			if not is_instance_valid(other) or other==self or other.health<=0:continue
 			if other.build_target_site!=site and other.upgrade_target_building!=site:continue
-			if other.destination.distance_to(candidate)<18.0:
+			if other.destination.distance_to(candidate)<28.0:
 				slot_reserved=true
 				break
 		if slot_reserved:continue
@@ -404,7 +404,7 @@ func _process(delta:float)->void:
 			moving=false
 			if carried_amount>0:
 				return_to_storage()
-		elif position.distance_to(upgrade_target_building.position)<=58.0:
+		elif position.distance_to(destination)<=12.0:
 			moving=false
 			path_pending=false
 			route=PackedVector2Array()
@@ -413,20 +413,20 @@ func _process(delta:float)->void:
 			upgrade_target_building.add_upgrade_work(delta*8.0*speed_multiplier/float(worker_count))
 		else:
 			moving=true
-			destination=get_building_approach_point(upgrade_target_building)
+			# Keep the assigned approach slot stable while travelling.
 			if route.is_empty() or route[route.size()-1].distance_to(destination)>8.0:set_route(destination)
 	if build_target_site!=null:
 		if not is_instance_valid(build_target_site) or build_target_site.is_complete:
 			build_target_site=null
 			moving=false
-		elif position.distance_to(build_target_site.position)<=58.0:
+		elif position.distance_to(destination)<=12.0:
 			moving=false
 			path_pending=false
 			route=PackedVector2Array()
 			build_target_site.add_build_work(delta*10.0)
 		else:
 			moving=true
-			destination=get_building_approach_point(build_target_site)
+			# Keep the assigned approach slot stable while travelling.
 			if route.is_empty() or route[route.size()-1].distance_to(destination)>8.0:set_route(destination)
 	attack_timer=max(0.0,attack_timer-delta)
 	acquire_timer-=delta
