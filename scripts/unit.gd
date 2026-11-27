@@ -222,7 +222,7 @@ func get_building_approach_point(site:Node2D)->Vector2:
 		for waypoint in candidate_route:
 			var segment_length:=previous.distance_to(waypoint)
 			route_length+=segment_length
-			var sample_count:=max(1,int(ceil(segment_length/8.0)))
+			var sample_count:=maxi(1,int(ceil(segment_length/8.0)))
 			for sample_index in range(1,sample_count+1):
 				var sample_pos:=previous.lerp(waypoint,float(sample_index)/float(sample_count))
 				if parent.is_unit_position_blocked(sample_pos,self,site):
