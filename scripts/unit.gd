@@ -445,6 +445,8 @@ func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
 		position=candidate
 		stuck_timer=0.0
 	else:
+		# Measure real progress toward the current waypoint, not just any movement.
+		var distance_before_move=position.distance_to(waypoint)
 		# Slide along static obstacles by testing each axis separately.
 		var slide_x=position+Vector2(step.x,0)
 		var slide_y=position+Vector2(0,step.y)
@@ -455,22 +457,20 @@ func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
 		elif abs(step.y)>0.1 and not parent.is_unit_position_blocked(slide_y,self,target_override):
 			position=slide_y
 			moved=true
-		if moved:
-			stuck_timer=0.0
-		else:
+		if not moved:
 			# Try a short lateral sidestep to escape unit congestion before replanning.
 			var lateral=Vector2(-direction.normalized().y,direction.normalized().x)
-			var sidestep= speed*delta*0.8
-			var escaped=false
+			var sidestep=speed*delta*0.8
 			for side in [1.0,-1.0]:
 				var side_candidate=position+lateral*side*sidestep
 				if not parent.is_unit_position_blocked(side_candidate,self,target_override):
 					position=side_candidate
-					escaped=true
 					break
+		# Sideways movement only counts if it actually gets closer to the waypoint.
+		if position.distance_to(waypoint)<distance_before_move-0.5:
+			stuck_timer=0.0
+		else:
 			stuck_timer+=delta
-			if escaped:
-				stuck_timer=0.0
-			elif stuck_timer>=0.75:
+			if stuck_timer>=0.75:
 				set_route(destination)
 				stuck_timer=0.0
