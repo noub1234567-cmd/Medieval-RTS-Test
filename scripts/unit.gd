@@ -43,6 +43,12 @@ var shelter_pending:=false
 var shelter_tc:Node2D=null
 var shelter_saved_state:Dictionary={}
 
+const UNIT_SEPARATION:=18.0
+const BUILDING_COLLISION_RADIUS:=34.0
+const TREE_COLLISION_RADIUS:=26.0
+const HARVEST_RANGE:=38.0
+var stuck_replans:=0
+
 func _ready()->void:
 	destination=position
 	body=Polygon2D.new()
@@ -110,6 +116,7 @@ func move_to(p:Vector2,snap_to_cell:bool=true)->void:
 	var parent=get_parent()
 	if snap_to_cell and parent!=null and parent.has_method("snap_to_map_cell"):
 		p=parent.snap_to_map_cell(p)
+	p=get_free_destination(p)
 	target=null
 	harvest_target_node=null
 	storage_target=null
@@ -376,7 +383,7 @@ func _process(delta:float)->void:
 			else:moving=false
 		else:
 			var d_h=position.distance_to(harvest_target_node.position)
-			if d_h>30.0:
+			if d_h>HARVEST_RANGE:
 				moving=true
 				destination=harvest_target_node.position
 				if route.is_empty() or route[route.size()-1].distance_to(destination)>8.0:set_route(destination)
@@ -454,8 +461,9 @@ func _process(delta:float)->void:
 	if moving and target==null:
 		var parent=get_parent()
 		if parent!=null:move_along_route(delta,parent,storage_target)
+	resolve_collisions(delta)
 
-func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
+func move_along_route(delta:float,parent:Node,_target_override:Node=null)->void:
 	if path_pending:return
 	if route.is_empty():set_route(destination)
 	if route.is_empty():return
@@ -468,51 +476,129 @@ func move_along_route(delta:float,parent:Node,target_override:Node=null)->void:
 	if direction.length()<3.0:
 		if route_index>=route.size()-1:
 			moving=false
+			stuck_replans=0
 			return
 		route_index+=1
 		return
-	# Add gentle lateral steering around nearby units instead of freezing on collision.
-	var steer=Vector2.ZERO
+	var move_direction:Vector2=direction.normalized()
+	var lateral:=Vector2(-move_direction.y,move_direction.x)
+	var steer:=Vector2.ZERO
 	for other in parent.units:
-		if is_instance_valid(other) and other!=self and other.health>0:
-			var separation=position-other.position
-			var distance=separation.length()
-			if distance>0.0 and distance<28.0:
-				steer+=separation.normalized()*(28.0-distance)/28.0
-	var move_direction=direction.normalized()
+		if is_instance_valid(other) and other!=self and other.health>0 and not other.sheltered:
+			var separation:Vector2=position-other.position
+			var distance:=separation.length()
+			if distance>0.0 and distance<30.0:
+				var weight:=(30.0-distance)/30.0
+				steer+=separation.normalized()*weight
+				# Someone is ahead: pass on the right so head-on units do not deadlock.
+				if (-separation.normalized()).dot(move_direction)>0.4:
+					steer+=lateral*weight*0.8
 	if steer.length()>0.01:
-		move_direction=(move_direction+steer*0.35).normalized()
-	# Track progress for every movement path, including steering-adjusted movement.
-	var distance_before_move=position.distance_to(waypoint)
-	var step=move_direction*min(speed*delta,direction.length())
-	var candidate=position+step
-	if not parent.has_method("is_unit_position_blocked") or not parent.is_unit_position_blocked(candidate,self,target_override):
-		position=candidate
-	else:
-		# Slide along static obstacles by testing each axis separately.
-		var slide_x=position+Vector2(step.x,0)
-		var slide_y=position+Vector2(0,step.y)
-		var moved=false
-		if abs(step.x)>0.1 and not parent.is_unit_position_blocked(slide_x,self,target_override):
-			position=slide_x
-			moved=true
-		elif abs(step.y)>0.1 and not parent.is_unit_position_blocked(slide_y,self,target_override):
-			position=slide_y
-			moved=true
-		if not moved:
-			# Try a short lateral sidestep to escape unit congestion before replanning.
-			var lateral=Vector2(-direction.normalized().y,direction.normalized().x)
-			var sidestep=speed*delta*0.8
-			for side in [1.0,-1.0]:
-				var side_candidate=position+lateral*side*sidestep
-				if not parent.is_unit_position_blocked(side_candidate,self,target_override):
-					position=side_candidate
-					break
-	# Reset only when the worker makes measurable progress toward the waypoint.
+		move_direction=(move_direction+steer*0.5).normalized()
+	var distance_before_move:=position.distance_to(waypoint)
+	var step_length:=minf(speed*delta,direction.length())
+	position+=move_direction*step_length
+	push_out_of_obstacles(parent,move_direction,step_length)
 	if position.distance_to(waypoint)<distance_before_move-0.5:
 		stuck_timer=0.0
+		stuck_replans=0
 	else:
 		stuck_timer+=delta
 		if stuck_timer>=0.75:
-			set_route(destination)
 			stuck_timer=0.0
+			stuck_replans+=1
+			# Close to an unreachable final point: stop instead of replanning forever.
+			if route_index>=route.size()-1 and position.distance_to(waypoint)<60.0 and stuck_replans>=2:
+				moving=false
+				stuck_replans=0
+			else:
+				set_route(destination)
+
+
+func collision_pushability()->float:
+	# Higher value = this unit yields more when overlapped.
+	if moving or target!=null:return 0.4
+	if is_instance_valid(harvest_target_node) or is_instance_valid(build_target_site) or is_instance_valid(upgrade_target_building) or is_instance_valid(storage_target):return 0.2
+	return 1.0
+
+func resolve_collisions(delta:float)->void:
+	var parent=get_parent()
+	if parent==null:return
+	push_out_of_obstacles(parent,Vector2.ZERO,0.0)
+	separate_from_units(parent,delta)
+	push_out_of_obstacles(parent,Vector2.ZERO,0.0)
+
+func push_out_of_circle(center:Vector2,radius:float,move_direction:Vector2,step_length:float)->void:
+	var offset:Vector2=position-center
+	var dist:=offset.length()
+	if dist>=radius:return
+	var normal:Vector2=offset/dist if dist>0.001 else Vector2(0,1)
+	position=center+normal*radius
+	# Heading straight into the obstacle would stall completely, so slide sideways.
+	if step_length>0.0 and move_direction!=Vector2.ZERO and -normal.dot(move_direction)>0.75:
+		var tangent:=Vector2(-normal.y,normal.x)
+		var side:=tangent.dot(destination-position)
+		if absf(side)<1.0:
+			side=1.0 if get_instance_id()%2==0 else -1.0
+		position+=tangent*signf(side)*step_length*0.6
+
+func push_out_of_obstacles(parent:Node,move_direction:Vector2,step_length:float)->void:
+	for list_name in ["buildings","enemy_buildings"]:
+		var list=parent.get(list_name)
+		if list==null:continue
+		for structure in list:
+			if is_instance_valid(structure) and structure.health>0:
+				push_out_of_circle(structure.position,BUILDING_COLLISION_RADIUS,move_direction,step_length)
+	var trees=parent.get("tree_positions")
+	if trees!=null:
+		for tree_pos in trees:
+			push_out_of_circle(tree_pos,TREE_COLLISION_RADIUS,move_direction,step_length)
+
+func separate_from_units(parent:Node,delta:float)->void:
+	var all_units=parent.get("units")
+	if all_units==null:return
+	var my_push:=collision_pushability()
+	var total:=Vector2.ZERO
+	for other in all_units:
+		if not is_instance_valid(other) or other==self or other.health<=0 or other.sheltered:continue
+		var offset:=position-other.position
+		var dist:=offset.length()
+		if dist>=UNIT_SEPARATION:continue
+		var direction:Vector2
+		if dist>0.01:
+			direction=offset/dist
+		else:
+			var angle:=float(get_instance_id()%360)*PI/180.0
+			direction=Vector2(cos(angle),sin(angle))
+		var other_push:float=other.collision_pushability()
+		total+=direction*(UNIT_SEPARATION-dist)*(my_push/(my_push+other_push))
+	if total!=Vector2.ZERO:
+		position+=total.limit_length(maxf(speed*delta*0.8,4.0))
+
+func get_free_destination(p:Vector2)->Vector2:
+	var parent=get_parent()
+	if parent==null:return p
+	for pass_index in range(3):
+		var moved:=false
+		for list_name in ["buildings","enemy_buildings"]:
+			var list=parent.get(list_name)
+			if list==null:continue
+			for structure in list:
+				if not is_instance_valid(structure) or structure.health<=0:continue
+				var offset:=p-structure.position
+				var dist:=offset.length()
+				if dist<BUILDING_COLLISION_RADIUS+4.0:
+					var normal:Vector2=offset/dist if dist>0.001 else Vector2(0,1)
+					p=structure.position+normal*(BUILDING_COLLISION_RADIUS+6.0)
+					moved=true
+		var trees=parent.get("tree_positions")
+		if trees!=null:
+			for tree_pos in trees:
+				var offset:=p-tree_pos
+				var dist:=offset.length()
+				if dist<TREE_COLLISION_RADIUS+4.0:
+					var normal:Vector2=offset/dist if dist>0.001 else Vector2(0,1)
+					p=tree_pos+normal*(TREE_COLLISION_RADIUS+6.0)
+					moved=true
+		if not moved:break
+	return p
