@@ -132,8 +132,8 @@ func _build_panel() -> void:
 	panel = PanelContainer.new()
 	panel.name = "WorkerDebugPanel"
 	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	panel.position = Vector2(-360, 12)
-	panel.size = Vector2(348, 230)
+	panel.position = Vector2(-420, 12)
+	panel.size = Vector2(408, 260)
 	layer.add_child(panel)
 	var column := VBoxContainer.new()
 	column.name = "VBoxContainer"
@@ -145,15 +145,20 @@ func _build_panel() -> void:
 	title.text = "WORKER DEBUG (passive)"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
+	var controls := HBoxContainer.new()
+	controls.name = "Controls"
+	column.add_child(controls)
 	var copy_button := Button.new()
 	copy_button.name = "CopyLog"
 	copy_button.text = "Copy Log"
+	copy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy_button.pressed.connect(_copy_report)
-	header.add_child(copy_button)
+	controls.add_child(copy_button)
 	var clear_button := Button.new()
 	clear_button.text = "Clear"
+	clear_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clear_button.pressed.connect(func(): report_lines.clear(); report_label.text = "")
-	header.add_child(clear_button)
+	controls.add_child(clear_button)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	column.add_child(scroll)
