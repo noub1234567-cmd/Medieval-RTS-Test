@@ -1,6 +1,7 @@
 extends Node2D
 
 var team:int=0
+var soldier_data:Resource=null
 var selected:bool=false
 var destination:=Vector2.ZERO
 var route:PackedVector2Array=PackedVector2Array()
@@ -74,6 +75,18 @@ func team_color()->Color:
 func set_team(t:int)->void:
 	team=t
 	if is_instance_valid(body):body.color=team_color()
+
+func apply_soldier_data(data:Resource)->void:
+	if data==null:return
+	soldier_data=data
+	speed=data.movement_speed
+	max_health=data.max_health
+	health=max_health
+	attack_damage=data.attack_damage
+	attack_range=data.attack_range
+	detection_range=data.detection_range
+	attack_cooldown=data.attack_cooldown
+	update_health_bar()
 
 func set_selected(v:bool)->void:
 	selected=v
