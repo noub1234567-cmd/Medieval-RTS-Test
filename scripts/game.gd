@@ -358,12 +358,24 @@ func touch_tap(pos:Vector2)->void:
 	if resource_hit!=null:
 		if not selected.is_empty():
 			var assigned_workers:=0
-			for worker in selected:
-				if is_instance_valid(worker) and worker.team==0 and worker.soldier_data==null:
-					worker.harvest_target(resource_hit)
-					assigned_workers+=1
+			var moved_soldiers:=0
+			for unit in selected:
+				if is_instance_valid(unit) and unit.team==0:
+					if unit.soldier_data==null:
+						unit.harvest_target(resource_hit)
+						assigned_workers+=1
+					else:
+						unit.move_to(resource_hit.position,false)
+						moved_soldiers+=1
 			clear_selection()
-			help_label.text="Workers assigned to gather %s" % resource_hit.resource_type if assigned_workers>0 else "Only workers can gather resources."
+			if assigned_workers>0 and moved_soldiers>0:
+				help_label.text="Workers gathering; soldiers moving to resource."
+			elif assigned_workers>0:
+				help_label.text="Workers assigned to gather %s" % resource_hit.resource_type
+			elif moved_soldiers>0:
+				help_label.text="Soldiers moving to resource — no gathering."
+			else:
+				help_label.text="No eligible player units selected."
 		else:
 			clear_selection()
 			create_selection_frame(resource_hit,Vector2(38,34))
