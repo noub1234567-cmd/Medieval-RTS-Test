@@ -92,7 +92,7 @@ var resource_nodes: Array[Node2D] = []
 var storage_points: Array[Node2D] = []
 var storage_capacity := 4000
 const ResourceNodeScript := preload("res://scripts/resource_node.gd")
-var building_cost := {"Farm": {"wood": 80, "gold": 30}, "House": {"wood": 100, "gold": 50}, "Barracks": {"wood": 150, "gold": 80}, "Guard Tower": {"wood": 120, "gold": 60}, "Watchtower": {"wood": 100, "gold": 50}, "Wall": {"wood": 25, "gold": 5}, "Warehouse": {"wood": 180, "gold": 70}, "Lumber Mill": {"wood": 150, "gold": 50}, "Quarry": {"wood": 150, "gold": 50}, "Gold Mine": {"wood": 150, "gold": 50}, "Mill": {"wood": 150, "gold": 50}, "Market": {"wood": 120, "gold": 60}, "Motivation Center": {"wood": 150, "gold": 50}, "Archery Range": {"wood": 160, "gold": 90}, "Stable": {"wood": 180, "gold": 100}}
+var building_cost := {"Farm": {"wood": 80, "gold": 30}, "House": {"wood": 100, "gold": 50}, "Barracks": {"wood": 150, "gold": 80}, "Guard Tower": {"wood": 120, "gold": 60}, "Watchtower": {"wood": 100, "gold": 50}, "Wall": {"wood": 25, "gold": 5}, "Warehouse": {"wood": 180, "gold": 70}, "Lumber Mill": {"wood": 150, "gold": 50}, "Quarry": {"wood": 150, "gold": 50}, "Gold Mine": {"wood": 150, "gold": 50}, "Mill": {"wood": 150, "gold": 50}, "Market": {"wood": 120, "gold": 60}, "Motivation Center": {"wood": 150, "gold": 50}, "Archery Range": {"wood": 160, "gold": 90}, "Stable": {"wood": 180, "gold": 100}, "Siege Workshop": {"wood": 220, "gold": 100, "stone": 100}}
 
 func _ready() -> void:
 	var overlay := OverlayScene.instantiate()
@@ -799,12 +799,12 @@ func create_hud() -> void:
 	select_idle_button.pressed.connect(select_idle_workers)
 	worker_row.add_child(select_idle_button)
 	var building_rows:Array[HBoxContainer]=[]
-	for row_index in range(5):
+	for row_index in range(6):
 		var building_row:=HBoxContainer.new()
 		building_row.add_theme_constant_override("separation",3)
 		v.add_child(building_row)
 		building_rows.append(building_row)
-	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market","Motivation","Archery","Stable"]
+	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market","Motivation","Archery","Stable","Siege"]
 	for i in range(building_names.size()):
 		var building_name=building_names[i]
 		var b:=Button.new()
@@ -1210,7 +1210,7 @@ func place_building(pos:Vector2) -> void:
 	structure.position=pos
 	var shape:=Polygon2D.new()
 	shape.polygon=PackedVector2Array([Vector2(0,-26),Vector2(24,-10),Vector2(24,12),Vector2(0,28),Vector2(-24,12),Vector2(-24,-10)])
-	shape.color={"Farm":Color(0.65,0.55,0.25),"House":Color(0.65,0.3,0.22),"Barracks":Color(0.3,0.32,0.4),"Guard Tower":Color(0.35,0.55,0.65),"Wall":Color(0.45,0.42,0.38),"Warehouse":Color(0.55,0.48,0.32),"Lumber Mill":Color(0.35,0.52,0.25),"Quarry":Color(0.48,0.48,0.52),"Gold Mine":Color(0.72,0.62,0.22),"Mill":Color(0.75,0.72,0.48),"Watchtower":Color(0.55,0.68,0.72),"Market":Color(0.62,0.38,0.28),"Motivation Center":Color(0.42,0.52,0.68),"Archery Range":Color(0.35,0.62,0.25),"Stable":Color(0.62,0.38,0.22)}[pending_building]
+	shape.color={"Farm":Color(0.65,0.55,0.25),"House":Color(0.65,0.3,0.22),"Barracks":Color(0.3,0.32,0.4),"Guard Tower":Color(0.35,0.55,0.65),"Wall":Color(0.45,0.42,0.38),"Warehouse":Color(0.55,0.48,0.32),"Lumber Mill":Color(0.35,0.52,0.25),"Quarry":Color(0.48,0.48,0.52),"Gold Mine":Color(0.72,0.62,0.22),"Mill":Color(0.75,0.72,0.48),"Watchtower":Color(0.55,0.68,0.72),"Market":Color(0.62,0.38,0.28),"Motivation Center":Color(0.42,0.52,0.68),"Archery Range":Color(0.35,0.62,0.25),"Stable":Color(0.62,0.38,0.22),"Siege Workshop":Color(0.5,0.38,0.3)}[pending_building]
 	structure.add_child(shape)
 	var label:=Label.new()
 	label.name="BuildingNameLabel"
