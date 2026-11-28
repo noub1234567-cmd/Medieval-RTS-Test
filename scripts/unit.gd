@@ -72,7 +72,14 @@ func _ready()->void:
 	update_health_bar()
 
 func team_color()->Color:
-	return Color(0.25,0.48,0.85) if team==0 else Color(0.8,0.25,0.22)
+	if team!=0:return Color(0.8,0.25,0.22)
+	if soldier_data==null:return Color(0.25,0.75,0.35) # Workers: green
+	match soldier_data.unit_id:
+		"light_infantry":return Color(0.25,0.48,0.85) # Blue
+		"heavy_infantry":return Color(0.9,0.25,0.2) # Red
+		"archer":return Color(1.0,0.78,0.2) # Yellow
+		"cavalry":return Color(0.65,0.3,0.85) # Purple
+	return Color(0.25,0.48,0.85)
 
 func set_team(t:int)->void:
 	team=t
@@ -88,6 +95,7 @@ func apply_soldier_data(data:Resource)->void:
 	attack_range=data.attack_range
 	detection_range=data.detection_range
 	attack_cooldown=data.attack_cooldown
+	if is_instance_valid(body):body.color=team_color()
 	update_health_bar()
 
 func set_selected(v:bool)->void:
