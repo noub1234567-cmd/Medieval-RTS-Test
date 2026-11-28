@@ -785,6 +785,11 @@ func create_hud() -> void:
 	recruit_heavy_infantry_button.custom_minimum_size=Vector2(120,36)
 	recruit_heavy_infantry_button.pressed.connect(recruit_heavy_infantry)
 	heavy_infantry_row.add_child(recruit_heavy_infantry_button)
+	var recruit_catapult_button:=Button.new()
+	recruit_catapult_button.text="Catapult"
+	recruit_catapult_button.custom_minimum_size=Vector2(100,36)
+	recruit_catapult_button.pressed.connect(recruit_catapult)
+	heavy_infantry_row.add_child(recruit_catapult_button)
 	var worker_row:=HBoxContainer.new()
 	worker_row.add_theme_constant_override("separation",3)
 	v.add_child(worker_row)
@@ -956,6 +961,7 @@ const LIGHT_INFANTRY_DATA:Resource=preload("res://resources/soldiers/light_infan
 const ARCHER_DATA:Resource=preload("res://resources/soldiers/archer.tres")
 const CAVALRY_DATA:Resource=preload("res://resources/soldiers/cavalry.tres")
 const HEAVY_INFANTRY_DATA:Resource=preload("res://resources/soldiers/heavy_infantry.tres")
+const CATAPULT_DATA:Resource=preload("res://resources/soldiers/catapult.tres")
 
 func recruit_soldier() -> void:
 	var data:Resource=LIGHT_INFANTRY_DATA
@@ -1066,6 +1072,34 @@ func recruit_heavy_infantry() -> void:
 	units.append(heavy_infantry)
 	update_status()
 	help_label.text="Heavy Infantry recruited!"
+
+func recruit_catapult() -> void:
+	var workshop:Node2D=null
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Siege Workshop" and b.is_complete and b.health>0:
+			workshop=b
+			break
+	if workshop==null:
+		help_label.text="Build and complete a Siege Workshop first"
+		return
+	if population+CATAPULT_DATA.population_cost>population_cap:
+		help_label.text="Population limit reached"
+		return
+	if resources.wood<200 or resources.gold<100 or resources.stone<150:
+		help_label.text="Catapult costs 200 wood, 100 gold and 150 stone"
+		return
+	resources.wood-=200
+	resources.gold-=100
+	resources.stone-=150
+	population+=CATAPULT_DATA.population_cost
+	var catapult:Node2D=UnitScene.instantiate()
+	add_child(catapult)
+	catapult.set_team(0)
+	catapult.apply_soldier_data(CATAPULT_DATA)
+	catapult.position=find_spawn_position(workshop.position)
+	units.append(catapult)
+	update_status()
+	help_label.text="Catapult recruited!"
 
 func find_spawn_position(origin:Vector2)->Vector2:
 	var offsets=[Vector2(48,0),Vector2(-48,0),Vector2(0,48),Vector2(0,-48),Vector2(48,48),Vector2(-48,-48),Vector2(48,-48),Vector2(-48,48)]
