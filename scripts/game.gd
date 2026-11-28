@@ -805,20 +805,23 @@ func create_hud() -> void:
 	select_idle_button.custom_minimum_size=Vector2(110,36)
 	select_idle_button.pressed.connect(select_idle_workers)
 	worker_row.add_child(select_idle_button)
-	var building_rows:Array[HBoxContainer]=[]
-	for row_index in range(6):
-		var building_row:=HBoxContainer.new()
-		building_row.add_theme_constant_override("separation",3)
-		v.add_child(building_row)
-		building_rows.append(building_row)
-	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market","Motivation","Archery","Stable","Siege"]
-	for i in range(building_names.size()):
-		var building_name=building_names[i]
-		var b:=Button.new()
-		b.text=building_name
-		b.custom_minimum_size=Vector2(72,36)
-		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else "Motivation Center" if building_name=="Motivation" else "Archery Range" if building_name=="Archery" else "Siege Workshop" if building_name=="Siege" else building_name))
-		building_rows[i/3].add_child(b)
+	var build_category_row:=HBoxContainer.new()
+	build_category_row.add_theme_constant_override("separation",3)
+	v.add_child(build_category_row)
+	var economy_buildings_button:=Button.new()
+	economy_buildings_button.text="Economy & Population"
+	economy_buildings_button.custom_minimum_size=Vector2(190,40)
+	economy_buildings_button.pressed.connect(func(): show_building_category("economy"))
+	build_category_row.add_child(economy_buildings_button)
+	var military_buildings_button:=Button.new()
+	military_buildings_button.text="Military & War"
+	military_buildings_button.custom_minimum_size=Vector2(150,40)
+	military_buildings_button.pressed.connect(func(): show_building_category("military"))
+	build_category_row.add_child(military_buildings_button)
+	building_category_panel=VBoxContainer.new()
+	building_category_panel.add_theme_constant_override("separation",3)
+	building_category_panel.visible=false
+	v.add_child(building_category_panel)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
 
