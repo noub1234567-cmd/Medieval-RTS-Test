@@ -810,7 +810,7 @@ func create_hud() -> void:
 		var b:=Button.new()
 		b.text=building_name
 		b.custom_minimum_size=Vector2(72,36)
-		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else "Motivation Center" if building_name=="Motivation" else "Archery Range" if building_name=="Archery" else building_name))
+		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else "Motivation Center" if building_name=="Motivation" else "Archery Range" if building_name=="Archery" else "Siege Workshop" if building_name=="Siege" else building_name))
 		building_rows[i/3].add_child(b)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
