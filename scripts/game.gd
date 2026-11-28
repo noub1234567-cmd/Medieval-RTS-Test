@@ -38,6 +38,7 @@ var market_preview_label:Label
 var market_window_open:=false
 var motivation_panel:PanelContainer
 var archery_panel:PanelContainer
+var building_action_panel:PanelContainer
 var motivation_status_label:Label
 var motivation_activate_button:Button
 var motivation_upgrade_button:Button
@@ -251,7 +252,7 @@ func screen_to_world(p:Vector2) -> Vector2:
 	return (p-camera_offset)/zoom_level
 
 func _input(event:InputEvent) -> void:
-	if is_instance_valid(motivation_panel) or is_instance_valid(archery_panel) or market_window_open:return
+	if is_instance_valid(motivation_panel) or is_instance_valid(archery_panel) or is_instance_valid(building_action_panel) or market_window_open:return
 	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
 		cancel_build_placement()
 		return
@@ -420,6 +421,7 @@ func touch_tap(pos:Vector2)->void:
 			open_motivation_center_window();return
 		if structure.building_type=="Archery Range":
 			open_archery_range_window();return
+		open_building_action_window();return
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
 		if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
@@ -552,6 +554,7 @@ func town_center_destroyed(tc:Node2D)->void:
 func clear_selection() -> void:
 	close_motivation_center_window()
 	close_archery_range_window()
+	close_building_action_window()
 	clear_selection_frame()
 	# Force-hide selection rings for every player worker, not only the selected list.
 	# This prevents stale visual selection if the list and unit state become desynchronized.
@@ -1917,6 +1920,76 @@ func update_motivation_center_display()->void:
 		motivation_status_label.text="Inactive — activation costs %d Gold and %d Food." % [900 if center.building_upgrade_level>=2 else 500,1000 if center.building_upgrade_level>=2 else 800]
 		motivation_activate_button.text="Activate"
 		motivation_activate_button.disabled=false
+
+func open_building_action_window()->void:
+	if is_instance_valid(building_action_panel) or not is_instance_valid(selected_building):
+		return
+	var b:=selected_building
+	building_action_panel=PanelContainer.new()
+	building_action_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	building_action_panel.position=Vector2(-190,-145)
+	building_action_panel.size=Vector2(380,290)
+	building_action_panel.custom_minimum_size=Vector2(380,290)
+	building_action_panel.z_index=200
+	building_action_panel.add_theme_stylebox_override("panel",make_panel_style())
+	hud.add_child(building_action_panel)
+	var v:=VBoxContainer.new()
+	v.add_theme_constant_override("separation",8)
+	building_action_panel.add_child(v)
+	var title:=Label.new()
+	title.text=b.building_type.to_upper()
+	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	if b.building_type=="Barracks":
+		var infantry:=Button.new()
+		infantry.text="Recruit Infantry"
+		infantry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		infantry.pressed.connect(recruit_soldier)
+		v.add_child(infantry)
+		var heavy:=Button.new()
+		heavy.text="Recruit Heavy Infantry"
+		heavy.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		heavy.pressed.connect(recruit_heavy_infantry)
+		v.add_child(heavy)
+	elif b.building_type=="Stable":
+		var cavalry:=Button.new()
+		cavalry.text="Recruit Cavalry"
+		cavalry.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		cavalry.pressed.connect(recruit_cavalry)
+		v.add_child(cavalry)
+	elif b.building_type=="Siege Workshop":
+		var siege:=Button.new()
+		siege.text="Recruit Catapult"
+		siege.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		siege.pressed.connect(recruit_catapult)
+		v.add_child(siege)
+	var upgrade:=Button.new()
+	upgrade.text="Upgrade to Level 2 — 120 Wood, 80 Gold, 60 Stone"
+	upgrade.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	upgrade.visible=b.is_complete and not b.is_upgrading and b.building_upgrade_level<2 and find_town_center_level()>=2
+	upgrade.pressed.connect(func():
+		close_building_action_window()
+		upgrade_selected_building()
+	)
+	v.add_child(upgrade)
+	var demolish:=Button.new()
+	demolish.text="Demolish (15%)"
+	demolish.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	demolish.pressed.connect(func():
+		close_building_action_window()
+		demolish_selected_building()
+	)
+	v.add_child(demolish)
+	var close_button:=Button.new()
+	close_button.text="Close"
+	close_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	close_button.pressed.connect(close_building_action_window)
+	v.add_child(close_button)
+
+func close_building_action_window()->void:
+	if is_instance_valid(building_action_panel):
+		building_action_panel.queue_free()
+	building_action_panel=null
 
 func open_archery_range_window()->void:
 	if is_instance_valid(archery_panel):
