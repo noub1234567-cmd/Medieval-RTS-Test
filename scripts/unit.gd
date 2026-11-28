@@ -15,6 +15,7 @@ var speed:=120.0
 var max_health:=100
 var health:=100
 var attack_damage:=15
+var building_damage:=15
 var attack_range:=42.0
 var detection_range:=220.0
 var attack_cooldown:=1.0
@@ -92,6 +93,7 @@ func apply_soldier_data(data:Resource)->void:
 	max_health=data.max_health
 	health=max_health
 	attack_damage=data.attack_damage
+	building_damage=data.building_damage
 	attack_range=data.attack_range
 	detection_range=data.detection_range
 	attack_cooldown=data.attack_cooldown
@@ -482,12 +484,12 @@ func _process(delta:float)->void:
 					var projectile:Node2D=Node2D.new()
 					projectile.set_script(ProjectileScript)
 					projectile.set("target",target)
-					projectile.set("damage",attack_damage)
+					projectile.set("damage",get_damage_for_target(target))
 					projectile.set("speed",420.0)
 					projectile.position=position+Vector2(0,-6)
 					var projectile_parent=get_parent()
 					if projectile_parent!=null:projectile_parent.add_child(projectile)
-					else:target.take_damage(attack_damage)
+					else:target.take_damage(get_damage_for_target(target))
 				else:
 					target.take_damage(attack_damage)
 				attack_timer=attack_cooldown
@@ -496,6 +498,14 @@ func _process(delta:float)->void:
 		var parent=get_parent()
 		if parent!=null:move_along_route(delta,parent,storage_target)
 	resolve_collisions(delta)
+
+func get_damage_for_target(enemy:Node2D)->int:
+	var parent=get_parent()
+	if soldier_data!=null and soldier_data.unit_id=="catapult" and parent!=null:
+		for list_name in ["buildings","enemy_buildings"]:
+			var list=parent.get(list_name)
+			if list!=null and list.has(enemy):return building_damage
+	return attack_damage
 
 func move_along_route(delta:float,parent:Node,_target_override:Node=null)->void:
 	if path_pending:return
