@@ -365,7 +365,10 @@ func touch_tap(pos:Vector2)->void:
 						unit.harvest_target(resource_hit)
 						assigned_workers+=1
 					else:
-						unit.move_to(resource_hit.position,false)
+						var approach_direction:Vector2=(unit.position-resource_hit.position).normalized()
+						if approach_direction.length()<0.1:
+							approach_direction=Vector2(1,0)
+						unit.move_to(resource_hit.position+approach_direction*48.0,false)
 						moved_soldiers+=1
 			clear_selection()
 			if assigned_workers>0 and moved_soldiers>0:
