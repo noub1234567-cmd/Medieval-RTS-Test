@@ -737,10 +737,15 @@ func create_hud() -> void:
 	buttons.add_theme_constant_override("separation",3)
 	v.add_child(buttons)
 	var recruit:=Button.new()
-	recruit.text="Soldier"
-	recruit.custom_minimum_size=Vector2(64,36)
+	recruit.text="Infantry"
+	recruit.custom_minimum_size=Vector2(72,36)
 	recruit.pressed.connect(recruit_soldier)
 	buttons.add_child(recruit)
+	var recruit_archer_button:=Button.new()
+	recruit_archer_button.text="Archer"
+	recruit_archer_button.custom_minimum_size=Vector2(72,36)
+	recruit_archer_button.pressed.connect(recruit_archer)
+	buttons.add_child(recruit_archer_button)
 	recruit_worker_button=Button.new()
 	recruit_worker_button.text="Worker (50 Food)"
 	recruit_worker_button.custom_minimum_size=Vector2(120,36)
@@ -906,6 +911,7 @@ func complete_worker_training()->void:
 	update_status()
 
 const LIGHT_INFANTRY_DATA:Resource=preload("res://resources/soldiers/light_infantry.tres")
+const ARCHER_DATA:Resource=preload("res://resources/soldiers/archer.tres")
 
 func recruit_soldier() -> void:
 	var data:Resource=LIGHT_INFANTRY_DATA
@@ -933,6 +939,35 @@ func recruit_soldier() -> void:
 	units.append(soldier)
 	update_status()
 	help_label.text="Soldier recruited!"
+
+func recruit_archer() -> void:
+	var has_archery_range:=false
+	var archery_range:Node2D=null
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Archery Range" and b.is_complete and b.health>0:
+			has_archery_range=true
+			archery_range=b
+			break
+	if not has_archery_range:
+		help_label.text="Build and complete an Archery Range first"
+		return
+	if population>=population_cap:
+		help_label.text="Population limit reached"
+		return
+	if resources.food<ARCHER_DATA.food_cost or resources.gold<ARCHER_DATA.gold_cost:
+		help_label.text="Archer costs %d food and %d gold" % [ARCHER_DATA.food_cost,ARCHER_DATA.gold_cost]
+		return
+	resources.food-=ARCHER_DATA.food_cost
+	resources.gold-=ARCHER_DATA.gold_cost
+	population+=ARCHER_DATA.population_cost
+	var archer:Node2D=UnitScene.instantiate()
+	add_child(archer)
+	archer.set_team(0)
+	archer.apply_soldier_data(ARCHER_DATA)
+	archer.position=find_spawn_position(archery_range.position)
+	units.append(archer)
+	update_status()
+	help_label.text="Archer recruited!"
 
 func find_spawn_position(origin:Vector2)->Vector2:
 	var offsets=[Vector2(48,0),Vector2(-48,0),Vector2(0,48),Vector2(0,-48),Vector2(48,48),Vector2(-48,-48),Vector2(48,-48),Vector2(-48,48)]
