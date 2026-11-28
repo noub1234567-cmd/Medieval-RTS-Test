@@ -261,7 +261,7 @@ func _input(event:InputEvent) -> void:
 			return
 	if event is InputEventMouseButton:
 		if event.button_index==MOUSE_BUTTON_LEFT:
-			if event.pressed and ((event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position)):
+			if event.pressed and ((event.position.x<520.0 and event.position.y<520.0) or is_screen_over_placement_controls(event.position)):
 				return
 			if event.pressed:
 				touch_start_screen=event.position
@@ -302,7 +302,7 @@ func _input(event:InputEvent) -> void:
 	elif event is InputEventScreenTouch:
 		if event.pressed:
 			ignore_emulated_mouse_for_touch=true
-			if (event.position.x<520.0 and event.position.y<280.0) or is_screen_over_placement_controls(event.position):
+			if (event.position.x<520.0 and event.position.y<520.0) or is_screen_over_placement_controls(event.position):
 				touch_start_screen=event.position
 				dragging=false
 				return
