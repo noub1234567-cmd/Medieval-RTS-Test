@@ -144,7 +144,7 @@ func move_to(p:Vector2,snap_to_cell:bool=true)->void:
 	set_route(p)
 
 func harvest_target(node:Node2D)->void:
-	if node==null or not is_instance_valid(node) or team!=0:return
+	if node==null or not is_instance_valid(node) or team!=0 or soldier_data!=null:return
 	var parent=get_parent()
 	if parent!=null and parent.has_method("assign_worker_to_resource_production"):
 		parent.assign_worker_to_resource_production(self,node.resource_type)
