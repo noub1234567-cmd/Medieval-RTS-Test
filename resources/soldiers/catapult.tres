@@ -9,6 +9,7 @@ display_name = "Catapult"
 description = "Siege engine recruited at the Siege Workshop."
 max_health = 240
 attack_damage = 90
+building_damage = 180
 attack_range = 240.0
 detection_range = 300.0
 attack_cooldown = 4.0
