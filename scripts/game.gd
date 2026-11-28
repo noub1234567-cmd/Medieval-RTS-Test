@@ -912,7 +912,10 @@ func complete_worker_training()->void:
 	help_label.text="Worker recruited!"
 	update_status()
 
+const LIGHT_INFANTRY_DATA:Resource=preload("res://resources/soldiers/light_infantry.tres")
+
 func recruit_soldier() -> void:
+	var data:Resource=LIGHT_INFANTRY_DATA
 	var has_barracks:=false
 	for b in buildings:
 		if b.name=="Barracks" and b.is_complete: has_barracks=true
@@ -922,15 +925,16 @@ func recruit_soldier() -> void:
 	if population>=population_cap:
 		help_label.text="Population limit reached"
 		return
-	if resources.food<50 or resources.gold<25:
-		help_label.text="Recruitment costs 50 food and 25 gold"
+	if resources.food<data.food_cost or resources.gold<data.gold_cost:
+		help_label.text="Recruitment costs %d food and %d gold" % [data.food_cost,data.gold_cost]
 		return
-	resources.food-=50
-	resources.gold-=25
+	resources.food-=data.food_cost
+	resources.gold-=data.gold_cost
 	population+=1
 	var soldier:Node2D=UnitScene.instantiate()
 	add_child(soldier)
 	soldier.set_team(0)
+	soldier.apply_soldier_data(data)
 	var barracks:Node2D=buildings.filter(func(b): return b.name=="Barracks")[0]
 	soldier.position=find_spawn_position(barracks.position)
 	units.append(soldier)
