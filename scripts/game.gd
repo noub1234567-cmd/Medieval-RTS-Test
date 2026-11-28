@@ -357,10 +357,13 @@ func touch_tap(pos:Vector2)->void:
 	var resource_hit=find_resource_node_at(pos)
 	if resource_hit!=null:
 		if not selected.is_empty():
+			var assigned_workers:=0
 			for worker in selected:
-				if is_instance_valid(worker) and worker.team==0:worker.harvest_target(resource_hit)
+				if is_instance_valid(worker) and worker.team==0 and worker.soldier_data==null:
+					worker.harvest_target(resource_hit)
+					assigned_workers+=1
 			clear_selection()
-			help_label.text="Workers assigned to gather %s" % resource_hit.resource_type
+			help_label.text="Workers assigned to gather %s" % resource_hit.resource_type if assigned_workers>0 else "Only workers can gather resources."
 		else:
 			clear_selection()
 			create_selection_frame(resource_hit,Vector2(38,34))
@@ -615,9 +618,14 @@ func attack_or_move(target_pos:Vector2) -> void:
 				resource_distance=rd
 				resource_node=node
 	if resource_node!=null:
-		for worker in selected: worker.harvest_target(resource_node)
-		help_label.text="Harvest order issued!"
-		return
+		var has_selected_worker:=false
+		for worker in selected:
+			if is_instance_valid(worker) and worker.team==0 and worker.soldier_data==null:
+				worker.harvest_target(resource_node)
+				has_selected_worker=true
+		if has_selected_worker:
+			help_label.text="Harvest order issued!"
+			return
 	var site:Node2D=null
 	var site_distance:=55.0
 	for b in construction_sites:
