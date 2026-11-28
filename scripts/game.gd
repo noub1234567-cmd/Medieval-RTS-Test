@@ -805,20 +805,23 @@ func create_hud() -> void:
 	select_idle_button.custom_minimum_size=Vector2(110,36)
 	select_idle_button.pressed.connect(select_idle_workers)
 	worker_row.add_child(select_idle_button)
-	var building_rows:Array[HBoxContainer]=[]
-	for row_index in range(6):
-		var building_row:=HBoxContainer.new()
-		building_row.add_theme_constant_override("separation",3)
-		v.add_child(building_row)
-		building_rows.append(building_row)
-	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market","Motivation","Archery","Stable","Siege"]
-	for i in range(building_names.size()):
-		var building_name=building_names[i]
-		var b:=Button.new()
-		b.text=building_name
-		b.custom_minimum_size=Vector2(72,36)
-		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else "Motivation Center" if building_name=="Motivation" else "Archery Range" if building_name=="Archery" else "Siege Workshop" if building_name=="Siege" else building_name))
-		building_rows[i/3].add_child(b)
+	var building_category_row:=HBoxContainer.new()
+	building_category_row.add_theme_constant_override("separation",3)
+	v.add_child(building_category_row)
+	var economy_button:=Button.new()
+	economy_button.text="Economy & Population"
+	economy_button.custom_minimum_size=Vector2(190,40)
+	economy_button.pressed.connect(show_building_category.bind("economy"))
+	building_category_row.add_child(economy_button)
+	var military_button:=Button.new()
+	military_button.text="Military & War"
+	military_button.custom_minimum_size=Vector2(150,40)
+	military_button.pressed.connect(show_building_category.bind("military"))
+	building_category_row.add_child(military_button)
+	building_category_panel=VBoxContainer.new()
+	building_category_panel.visible=false
+	building_category_panel.add_theme_constant_override("separation",3)
+	v.add_child(building_category_panel)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
 
@@ -884,9 +887,53 @@ func create_hud() -> void:
 	help_label.add_theme_font_size_override("font_size",11)
 	v.add_child(help_label)
 
+
+var building_category_panel:VBoxContainer
+var current_building_category: String = ""
+
+func show_building_category(category:String)->void:
+	if not is_instance_valid(building_category_panel):return
+	current_building_category=category
+	for child in building_category_panel.get_children():child.queue_free()
+	building_category_panel.visible=true
+	var title:=Label.new()
+	title.text="Economy & Population" if category=="economy" else "Military & War"
+	building_category_panel.add_child(title)
+	var names:Array[String]=[]
+	if category=="economy":
+		names=["Farm","House","Wall","Store","Lumber","Quarry","Gold","Mill","Market","Motivation"]
+	else:
+		names=["Barracks","Tower","Watchtower","Archery","Stable","Siege"]
+	for i in range(0,names.size(),2):
+		var row:=HBoxContainer.new()
+		row.add_theme_constant_override("separation",3)
+		building_category_panel.add_child(row)
+		for j in range(i,min(i+2,names.size())):
+			var display_name=names[j]
+			var button:=Button.new()
+			button.text=display_name
+			button.custom_minimum_size=Vector2(112,36)
+			button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+			button.pressed.connect(begin_placement.bind(resolve_building_name(display_name)))
+			row.add_child(button)
+	var back:=Button.new()
+	back.text="Back"
+	back.pressed.connect(close_building_category)
+	building_category_panel.add_child(back)
+
+func resolve_building_name(display_name:String)->String:
+	return {"Tower":"Guard Tower","Store":"Warehouse","Lumber":"Lumber Mill","Gold":"Gold Mine","Motivation":"Motivation Center","Archery":"Archery Range","Siege":"Siege Workshop"}.get(display_name,display_name)
+
+func close_building_category()->void:
+	current_building_category=""
+	if is_instance_valid(building_category_panel):
+		building_category_panel.visible=false
+		for child in building_category_panel.get_children():child.queue_free()
+
 func toggle_hud()->void:
 	hud_collapsed=not hud_collapsed
 	status_label.visible=not hud_collapsed
+	if is_instance_valid(building_category_panel):building_category_panel.visible=not hud_collapsed and current_building_category!=""
 	for child in hud.get_child(0).get_child(0).get_children():
 		if child is HBoxContainer and child!=hud.get_child(0).get_child(0).get_child(0):
 			child.visible=not hud_collapsed
