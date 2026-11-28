@@ -486,6 +486,7 @@ func _process(delta:float)->void:
 					projectile.set("target",target)
 					projectile.set("damage",get_damage_for_target(target))
 					projectile.set("speed",420.0)
+					if soldier_data.unit_id=="catapult":projectile.set("arc_height",100.0)
 					projectile.position=position+Vector2(0,-6)
 					var projectile_parent=get_parent()
 					if projectile_parent!=null:projectile_parent.add_child(projectile)
