@@ -37,6 +37,7 @@ var market_amount_spin:SpinBox
 var market_preview_label:Label
 var market_window_open:=false
 var motivation_panel:PanelContainer
+var archery_panel:PanelContainer
 var motivation_status_label:Label
 var motivation_activate_button:Button
 var motivation_upgrade_button:Button
@@ -250,7 +251,7 @@ func screen_to_world(p:Vector2) -> Vector2:
 	return (p-camera_offset)/zoom_level
 
 func _input(event:InputEvent) -> void:
-	if is_instance_valid(motivation_panel) or market_window_open:return
+	if is_instance_valid(motivation_panel) or is_instance_valid(archery_panel) or market_window_open:return
 	if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:
 		cancel_build_placement()
 		return
@@ -417,6 +418,8 @@ func touch_tap(pos:Vector2)->void:
 			if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
 			if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
 			open_motivation_center_window();return
+		if structure.building_type=="Archery Range":
+			open_archery_range_window();return
 		if is_instance_valid(cancel_build_button):cancel_build_button.visible=false
 		if is_instance_valid(demolish_building_button):demolish_building_button.visible=true
 		if is_instance_valid(upgrade_building_button):upgrade_building_button.visible=(structure.is_complete and not structure.is_upgrading and structure.building_upgrade_level<2 and find_town_center_level()>=2)
@@ -548,6 +551,7 @@ func town_center_destroyed(tc:Node2D)->void:
 
 func clear_selection() -> void:
 	close_motivation_center_window()
+	close_archery_range_window()
 	clear_selection_frame()
 	# Force-hide selection rings for every player worker, not only the selected list.
 	# This prevents stale visual selection if the list and unit state become desynchronized.
@@ -1913,6 +1917,57 @@ func update_motivation_center_display()->void:
 		motivation_status_label.text="Inactive — activation costs %d Gold and %d Food." % [900 if center.building_upgrade_level>=2 else 500,1000 if center.building_upgrade_level>=2 else 800]
 		motivation_activate_button.text="Activate"
 		motivation_activate_button.disabled=false
+
+func open_archery_range_window()->void:
+	if is_instance_valid(archery_panel):
+		return
+	archery_panel=PanelContainer.new()
+	archery_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	archery_panel.position=Vector2(-190,-125)
+	archery_panel.size=Vector2(380,250)
+	archery_panel.custom_minimum_size=Vector2(380,250)
+	archery_panel.z_index=200
+	archery_panel.add_theme_stylebox_override("panel",make_panel_style())
+	hud.add_child(archery_panel)
+	var v:=VBoxContainer.new()
+	v.add_theme_constant_override("separation",10)
+	archery_panel.add_child(v)
+	var title:=Label.new()
+	title.text="ARCHERY RANGE"
+	title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(title)
+	var recruit_button:=Button.new()
+	recruit_button.text="Recruit Archer"
+	recruit_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	recruit_button.pressed.connect(recruit_archer)
+	v.add_child(recruit_button)
+	var upgrade_button:=Button.new()
+	upgrade_button.text="Upgrade to Level 2 — 120 Wood, 80 Gold, 60 Stone"
+	upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	upgrade_button.visible=selected_building.is_complete and not selected_building.is_upgrading and selected_building.building_upgrade_level<2 and find_town_center_level()>=2
+	upgrade_button.pressed.connect(func():
+		close_archery_range_window()
+		upgrade_selected_building()
+	)
+	v.add_child(upgrade_button)
+	var demolish_button:=Button.new()
+	demolish_button.text="Demolish (15%)"
+	demolish_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	demolish_button.pressed.connect(func():
+		close_archery_range_window()
+		demolish_selected_building()
+	)
+	v.add_child(demolish_button)
+	var close_button:=Button.new()
+	close_button.text="Close"
+	close_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	close_button.pressed.connect(close_archery_range_window)
+	v.add_child(close_button)
+
+func close_archery_range_window()->void:
+	if is_instance_valid(archery_panel):
+		archery_panel.queue_free()
+	archery_panel=null
 
 func open_motivation_center_window()->void:
 	if is_instance_valid(motivation_panel):
