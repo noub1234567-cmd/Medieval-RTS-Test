@@ -1,5 +1,7 @@
 extends Node2D
 
+const ProjectileScript := preload("res://scripts/projectile.gd")
+
 var team:int=0
 var soldier_data:Resource=null
 var selected:bool=false
@@ -468,7 +470,17 @@ func _process(delta:float)->void:
 					target_path_timer=1.25
 				move_along_route(delta,parent,target)
 			elif attack_timer<=0.0:
-				target.take_damage(attack_damage)
+				var ranged_attack:=soldier_data!=null and soldier_data.attack_type=="ranged"
+				if ranged_attack:
+					var projectile:=Node2D.new()
+					projectile.set_script(ProjectileScript)
+					projectile.target=target
+					projectile.damage=attack_damage
+					projectile.speed=420.0
+					projectile.position=position+Vector2(0,-6)
+					get_parent().add_child(projectile)
+				else:
+					target.take_damage(attack_damage)
 				attack_timer=attack_cooldown
 				if is_instance_valid(target) and target.health>0 and target.has_method("attack_target") and target.team!=team:target.attack_target(self)
 	if moving and target==null:
