@@ -27,6 +27,7 @@ var upgrade_bar_bg:Polygon2D
 var upgrade_bar_fill:Polygon2D
 var upgrade_workers:Array[Node2D]=[]
 var production_worker:Node2D=null
+var death_notified:bool=false
 
 func _ready()->void:
 	if building_type in ["Guard Tower","Watchtower"] and team==0:
@@ -300,9 +301,11 @@ func _process(delta:float)->void:
 		attack_timer=attack_cooldown
 
 func take_damage(amount:int)->void:
+	if health<=0 or death_notified:return
 	health=max(0,health-amount)
 	update_health_bar()
 	if health<=0:
+		death_notified=true
 		if team==0 and building_type=="Town Center":
 			var parent=get_parent()
 			if parent!=null and parent.has_method("town_center_destroyed"):
