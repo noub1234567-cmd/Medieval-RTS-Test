@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SoldierData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/soldier_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+unit_id = "catapult"
+display_name = "Catapult"
+description = "Siege engine recruited at the Siege Workshop."
+max_health = 240
+attack_damage = 90
+attack_range = 240.0
+detection_range = 300.0
+attack_cooldown = 4.0
+movement_speed = 45.0
+armor = 2
+food_cost = 0
+gold_cost = 100
+population_cost = 3
+attack_type = "ranged"
+unit_class = "siege"
