@@ -6,6 +6,7 @@ class_name SoldierData
 @export var description: String = ""
 @export var max_health: int = 100
 @export var attack_damage: int = 15
+@export var building_damage: int = 15
 @export var attack_range: float = 42.0
 @export var detection_range: float = 220.0
 @export var attack_cooldown: float = 1.0
