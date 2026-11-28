@@ -746,6 +746,14 @@ func create_hud() -> void:
 	recruit_archer_button.custom_minimum_size=Vector2(88,36)
 	recruit_archer_button.pressed.connect(recruit_archer)
 	recruit_row.add_child(recruit_archer_button)
+	var cavalry_row:=HBoxContainer.new()
+	cavalry_row.add_theme_constant_override("separation",3)
+	v.add_child(cavalry_row)
+	var recruit_cavalry_button:=Button.new()
+	recruit_cavalry_button.text="Cavalry"
+	recruit_cavalry_button.custom_minimum_size=Vector2(88,36)
+	recruit_cavalry_button.pressed.connect(recruit_cavalry)
+	cavalry_row.add_child(recruit_cavalry_button)
 	var worker_row:=HBoxContainer.new()
 	worker_row.add_theme_constant_override("separation",3)
 	v.add_child(worker_row)
@@ -915,6 +923,7 @@ func complete_worker_training()->void:
 
 const LIGHT_INFANTRY_DATA:Resource=preload("res://resources/soldiers/light_infantry.tres")
 const ARCHER_DATA:Resource=preload("res://resources/soldiers/archer.tres")
+const CAVALRY_DATA:Resource=preload("res://resources/soldiers/cavalry.tres")
 
 func recruit_soldier() -> void:
 	var data:Resource=LIGHT_INFANTRY_DATA
@@ -971,6 +980,33 @@ func recruit_archer() -> void:
 	units.append(archer)
 	update_status()
 	help_label.text="Archer recruited!"
+
+func recruit_cavalry() -> void:
+	var stable:Node2D=null
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Stable" and b.is_complete and b.health>0:
+			stable=b
+			break
+	if stable==null:
+		help_label.text="Build and complete a Stable first"
+		return
+	if population+CAVALRY_DATA.population_cost>population_cap:
+		help_label.text="Population limit reached"
+		return
+	if resources.food<CAVALRY_DATA.food_cost or resources.gold<CAVALRY_DATA.gold_cost:
+		help_label.text="Cavalry costs %d food and %d gold" % [CAVALRY_DATA.food_cost,CAVALRY_DATA.gold_cost]
+		return
+	resources.food-=CAVALRY_DATA.food_cost
+	resources.gold-=CAVALRY_DATA.gold_cost
+	population+=CAVALRY_DATA.population_cost
+	var cavalry:Node2D=UnitScene.instantiate()
+	add_child(cavalry)
+	cavalry.set_team(0)
+	cavalry.apply_soldier_data(CAVALRY_DATA)
+	cavalry.position=find_spawn_position(stable.position)
+	units.append(cavalry)
+	update_status()
+	help_label.text="Cavalry recruited!"
 
 func find_spawn_position(origin:Vector2)->Vector2:
 	var offsets=[Vector2(48,0),Vector2(-48,0),Vector2(0,48),Vector2(0,-48),Vector2(48,48),Vector2(-48,-48),Vector2(48,-48),Vector2(-48,48)]
