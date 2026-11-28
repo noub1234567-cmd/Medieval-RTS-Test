@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SoldierData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/soldier_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+unit_id = "light_infantry"
+display_name = "Light Infantry"
+description = "Basic melee infantry."
+max_health = 100
+attack_damage = 15
+attack_range = 42.0
+detection_range = 220.0
+attack_cooldown = 1.0
+movement_speed = 120.0
+armor = 0
+food_cost = 50
+gold_cost = 25
+population_cost = 1
+attack_type = "melee"
+unit_class = "infantry"
