@@ -479,7 +479,7 @@ func _process(delta:float)->void:
 					projectile.position=position+Vector2(0,-6)
 					var projectile_parent=get_parent()
 					if projectile_parent!=null:projectile_parent.add_child(projectile)
-				else:target.take_damage(attack_damage)
+					else:target.take_damage(attack_damage)
 				else:
 					target.take_damage(attack_damage)
 				attack_timer=attack_cooldown
