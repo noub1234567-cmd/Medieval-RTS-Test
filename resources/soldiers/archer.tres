@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SoldierData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/soldier_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+unit_id = "archer"
+display_name = "Archer"
+description = "Ranged unit recruited at the Archery Range."
+max_health = 80
+attack_damage = 12
+attack_range = 150.0
+detection_range = 260.0
+attack_cooldown = 1.4
+movement_speed = 105.0
+armor = 0
+food_cost = 40
+gold_cost = 35
+population_cost = 1
+attack_type = "ranged"
+unit_class = "ranged"
