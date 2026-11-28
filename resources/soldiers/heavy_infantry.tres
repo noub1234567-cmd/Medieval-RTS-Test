@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SoldierData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/soldier_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+unit_id = "heavy_infantry"
+display_name = "Heavy Infantry"
+description = "Armored melee infantry recruited at the Barracks."
+max_health = 160
+attack_damage = 22
+attack_range = 42.0
+detection_range = 220.0
+attack_cooldown = 1.2
+movement_speed = 90.0
+armor = 4
+food_cost = 80
+gold_cost = 50
+population_cost = 1
+attack_type = "melee"
+unit_class = "heavy_infantry"
