@@ -754,6 +754,11 @@ func create_hud() -> void:
 	recruit_cavalry_button.custom_minimum_size=Vector2(88,36)
 	recruit_cavalry_button.pressed.connect(recruit_cavalry)
 	cavalry_row.add_child(recruit_cavalry_button)
+	var recruit_heavy_infantry_button:=Button.new()
+	recruit_heavy_infantry_button.text="Heavy Inf."
+	recruit_heavy_infantry_button.custom_minimum_size=Vector2(88,36)
+	recruit_heavy_infantry_button.pressed.connect(recruit_heavy_infantry)
+	cavalry_row.add_child(recruit_heavy_infantry_button)
 	var worker_row:=HBoxContainer.new()
 	worker_row.add_theme_constant_override("separation",3)
 	v.add_child(worker_row)
@@ -924,6 +929,7 @@ func complete_worker_training()->void:
 const LIGHT_INFANTRY_DATA:Resource=preload("res://resources/soldiers/light_infantry.tres")
 const ARCHER_DATA:Resource=preload("res://resources/soldiers/archer.tres")
 const CAVALRY_DATA:Resource=preload("res://resources/soldiers/cavalry.tres")
+const HEAVY_INFANTRY_DATA:Resource=preload("res://resources/soldiers/heavy_infantry.tres")
 
 func recruit_soldier() -> void:
 	var data:Resource=LIGHT_INFANTRY_DATA
@@ -1007,6 +1013,33 @@ func recruit_cavalry() -> void:
 	units.append(cavalry)
 	update_status()
 	help_label.text="Cavalry recruited!"
+
+func recruit_heavy_infantry() -> void:
+	var barracks:Node2D=null
+	for b in buildings:
+		if is_instance_valid(b) and b.team==0 and b.building_type=="Barracks" and b.is_complete and b.health>0:
+			barracks=b
+			break
+	if barracks==null:
+		help_label.text="Build and complete a Barracks first"
+		return
+	if population+HEAVY_INFANTRY_DATA.population_cost>population_cap:
+		help_label.text="Population limit reached"
+		return
+	if resources.food<HEAVY_INFANTRY_DATA.food_cost or resources.gold<HEAVY_INFANTRY_DATA.gold_cost:
+		help_label.text="Heavy Infantry costs %d food and %d gold" % [HEAVY_INFANTRY_DATA.food_cost,HEAVY_INFANTRY_DATA.gold_cost]
+		return
+	resources.food-=HEAVY_INFANTRY_DATA.food_cost
+	resources.gold-=HEAVY_INFANTRY_DATA.gold_cost
+	population+=HEAVY_INFANTRY_DATA.population_cost
+	var heavy_infantry:Node2D=UnitScene.instantiate()
+	add_child(heavy_infantry)
+	heavy_infantry.set_team(0)
+	heavy_infantry.apply_soldier_data(HEAVY_INFANTRY_DATA)
+	heavy_infantry.position=find_spawn_position(barracks.position)
+	units.append(heavy_infantry)
+	update_status()
+	help_label.text="Heavy Infantry recruited!"
 
 func find_spawn_position(origin:Vector2)->Vector2:
 	var offsets=[Vector2(48,0),Vector2(-48,0),Vector2(0,48),Vector2(0,-48),Vector2(48,48),Vector2(-48,-48),Vector2(48,-48),Vector2(-48,48)]
