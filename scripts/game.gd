@@ -751,27 +751,20 @@ func create_hud() -> void:
 	select_idle_button.custom_minimum_size=Vector2(110,36)
 	select_idle_button.pressed.connect(select_idle_workers)
 	buttons.add_child(select_idle_button)
-	var building_rows:Array[HBoxContainer]=[buttons]
-	var second_building_row:=HBoxContainer.new()
-	second_building_row.add_theme_constant_override("separation",3)
-	v.add_child(second_building_row)
-	building_rows.append(second_building_row)
-	var third_building_row:=HBoxContainer.new()
-	third_building_row.add_theme_constant_override("separation",3)
-	v.add_child(third_building_row)
-	building_rows.append(third_building_row)
-	var fourth_building_row:=HBoxContainer.new()
-	fourth_building_row.add_theme_constant_override("separation",3)
-	v.add_child(fourth_building_row)
-	building_rows.append(fourth_building_row)
+	var building_rows:Array[HBoxContainer]=[]
+	for row_index in range(5):
+		var building_row:=HBoxContainer.new()
+		building_row.add_theme_constant_override("separation",3)
+		v.add_child(building_row)
+		building_rows.append(building_row)
 	var building_names=["Farm","House","Barracks","Tower","Wall","Store","Lumber","Quarry","Gold","Mill","Watchtower","Market","Motivation","Archery","Stable"]
 	for i in range(building_names.size()):
 		var building_name=building_names[i]
 		var b:=Button.new()
 		b.text=building_name
-		b.custom_minimum_size=Vector2(54,36)
+		b.custom_minimum_size=Vector2(72,36)
 		b.pressed.connect(func(): begin_placement("Guard Tower" if building_name=="Tower" else "Warehouse" if building_name=="Store" else "Lumber Mill" if building_name=="Lumber" else "Gold Mine" if building_name=="Gold" else "Mill" if building_name=="Mill" else "Motivation Center" if building_name=="Motivation" else "Archery Range" if building_name=="Archery" else building_name))
-		building_rows[0 if i<3 else 1 if i<6 else 2 if i<9 else 3].add_child(b)
+		building_rows[i/3].add_child(b)
 	var enemy_row:=HBoxContainer.new()
 	v.add_child(enemy_row)
 
