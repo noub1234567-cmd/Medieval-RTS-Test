@@ -588,6 +588,8 @@ func select_idle_workers()->void:
 	clear_selection()
 	for u in units:
 		if not is_instance_valid(u) or u.team!=0 or u.health<=0 or u.sheltered or u.shelter_pending:
+		if u.soldier_data!=null:
+			continue
 			continue
 		if u.moving or u.path_pending:
 			continue
